@@ -105,4 +105,34 @@ describe('GameEngine', () => {
         // Verify team score was updated (0 points added though in this specific test case of 0-0 hands)
         // But ensures no crash.
     });
+
+    test('should find valid move for player when board has [6,6]', () => {
+        // Setup board with [6,6]
+        engine.getState().board = [{ piece: [6, 6] }];
+
+        // Setup Player P1 with [6,1]
+        const p1 = engine.getState().players[0];
+        p1.hand = [[6, 1], [0, 0]];
+        engine.getState().currentTurnPlayerId = p1.id;
+
+        // Force findAnyValidMove to be exposed or test via auto-play simulation
+        // Since findAnyValidMove is private, we can test it by simulating timeout
+        // OR by checking if passTurn fails (since passTurn checks findAnyValidMove)
+
+        // Attempt to pass. Should FAIL because we have a valid move.
+        const consoleSpy = jest.spyOn(console, 'log');
+        engine.passTurn(p1.id);
+
+        expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('cannot pass - has valid moves'));
+        // Turn should NOT have changed (still P1)
+        expect(engine.getState().currentTurnPlayerId).toBe(p1.id);
+
+        // Now simulate timeout to see if it plays
+        engine['handleTimeout'](); // Accessing private method for testing
+
+        // Should have played [6,1]
+        expect(engine.getState().board.length).toBe(2);
+        // Turn should have changed
+        expect(engine.getState().currentTurnPlayerId).not.toBe(p1.id);
+    });
 });
