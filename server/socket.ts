@@ -10,6 +10,9 @@ function startGameAutomatically(roomId: string, io: Server, manager: RoomManager
     const room = manager.getRoom(roomId);
     if (!room || room.players.length < 4) return;
 
+    // Sort players by position to ensure correct turn order (0->1->2->3)
+    room.players.sort((a, b) => (a.position - b.position));
+
     // Create engine with state change callback
     const engine = new GameEngine(room.players, room.config, (state) => {
         io.to(room.id).emit('game_update', state);
@@ -139,6 +142,9 @@ export const setupSocketHandlers = (io: Server) => {
                 });
                 return;
             }
+
+            // Sort players by position to ensure correct turn order (0->1->2->3)
+            room.players.sort((a, b) => (a.position - b.position));
 
             // Create Engine with state change callback
             const engine = new GameEngine(room.players, room.config, (state) => {

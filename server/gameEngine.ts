@@ -397,9 +397,9 @@ export class GameEngine {
     private nextTurn() {
         if (this.gameState.winnerTeam) return;
 
-        // COUNTERCLOCKWISE turn order: 0 → 3 → 2 → 1 → 0
+        // COUNTERCLOCKWISE turn order: 0 (South) -> 1 (East) -> 2 (North) -> 3 (West) -> 0
         const currentIdx = this.gameState.players.findIndex(p => p.id === this.gameState.currentTurnPlayerId);
-        const nextIdx = (currentIdx - 1 + this.gameState.players.length) % this.gameState.players.length;
+        const nextIdx = (currentIdx + 1) % this.gameState.players.length;
         this.gameState.currentTurnPlayerId = this.gameState.players[nextIdx].id;
 
         console.log(`Turn: ${this.gameState.players[currentIdx].name} → ${this.gameState.players[nextIdx].name} (counterclockwise)`);

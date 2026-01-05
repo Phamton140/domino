@@ -6,6 +6,7 @@ export interface Player {
     hand: Piece[];
     score: number;
     team: 'A' | 'B';
+    position: number; // 0-3: 0=South, 1=East, 2=North, 3=West (Counter-Clockwise)
     extensionUsed: boolean;
 }
 

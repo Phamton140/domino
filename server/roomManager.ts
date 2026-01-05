@@ -15,6 +15,7 @@ export class RoomManager {
             hand: [],
             score: 0,
             team: 'A', // Host is team A
+            position: 0, // Host is always South (0)
             extensionUsed: false
         };
 
@@ -49,16 +50,19 @@ export class RoomManager {
         const existingPlayer = room.players.find(p => p.id === playerId);
         if (existingPlayer) return room; // Already joined
 
-        const position = room.players.length;
+        const joinOrder = room.players.length;
+        let position = 0;
 
-        // DOMINICAN DOMINOES SEATING (Counterclockwise):
-        // Position 0 (Host/South) - Team A
-        // Position 3 (West) - Team B (opponent to the right)
-        // Position 2 (North/Partner) - Team A (across from host)
-        // Position 1 (East) - Team B (opponent to the left)
-        //
-        // Turn order (counterclockwise): 0 → 3 → 2 → 1 → 0
-        // Teams: A (0,2) vs B (1,3)
+        // Assign position based on join order to satisfy User Request:
+        // "First two people connected will always be same team" (Team A)
+        // "Partner is always sitting opposite"
+        if (joinOrder === 0) position = 0; // Host (handled in createRoom)
+        else if (joinOrder === 1) position = 2; // 2nd player -> Partner (North) -> Team A
+        else if (joinOrder === 2) position = 1; // 3rd player -> Team B (East)
+        else if (joinOrder === 3) position = 3; // 4th player -> Team B (West)
+
+        // Counter-Clockwise Play: 0 (South) -> 1 (East) -> 2 (North) -> 3 (West)
+        // Teams: A (0, 2) vs B (1, 3)
 
         const team = (position === 0 || position === 2) ? 'A' : 'B';
 
@@ -68,6 +72,7 @@ export class RoomManager {
             hand: [],
             score: 0,
             team,
+            position,
             extensionUsed: false
         };
 

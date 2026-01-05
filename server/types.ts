@@ -7,6 +7,7 @@ export interface Player {
     score: number;
     // Game session specific
     team: 'A' | 'B'; // For 2vs2
+    position: number; // 0-3
     extensionUsed: boolean; // "Extensión de pensamiento"
 }
 

@@ -16,10 +16,10 @@ describe('GameEngine', () => {
 
     beforeEach(() => {
         players = [
-            { id: '1', name: 'A', hand: [], score: 0, team: 'A', extensionUsed: false },
-            { id: '2', name: 'B', hand: [], score: 0, team: 'B', extensionUsed: false },
-            { id: '3', name: 'C', hand: [], score: 0, team: 'A', extensionUsed: false },
-            { id: '4', name: 'D', hand: [], score: 0, team: 'B', extensionUsed: false },
+            { id: '1', name: 'A', hand: [], score: 0, team: 'A', position: 0, extensionUsed: false },
+            { id: '2', name: 'B', hand: [], score: 0, team: 'B', position: 1, extensionUsed: false },
+            { id: '3', name: 'C', hand: [], score: 0, team: 'A', position: 2, extensionUsed: false },
+            { id: '4', name: 'D', hand: [], score: 0, team: 'B', position: 3, extensionUsed: false },
         ];
         engine = new GameEngine(players, config);
         engine.startHand();
@@ -97,7 +97,9 @@ describe('GameEngine', () => {
         expect(engine.getState().consecutivePasses).toBe(4);
         // Should have triggered Tranque handler -> Win logic
         // Check winnerTeam is set
-        // Since all hands equal ([0,0] = 0pts), winner depends on tie logic (we set to opponent)
-        expect(engine.getState().winnerTeam).toBeDefined();
+        // Check handWinnerId is set (hand finished)
+        // winnerTeam is only set if score >= 200, which won't happen here with 0 points
+        expect(engine.getState().handWinnerId).toBeDefined();
+        expect(engine.getState().winReason).toBe('tranque');
     });
 });
