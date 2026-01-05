@@ -207,14 +207,42 @@ export class GameEngine {
     private findAnyValidMove(player: Player): { piece: Piece, side: 'head' | 'tail' } | null {
         const [head, tail] = this.getOpenEnds();
 
-        // Special case for first move of the hand
+        // 1. First move of the hand (Board Empty)
         if (head === -1) {
             if (this.gameState.handNumber === 1) {
+                // First hand: Must play [6,6]
                 const d6 = player.hand.find(p => p[0] === 6 && p[1] === 6);
-                if (d6) return { piece: d6, side: 'head' };
+                return d6 ? { piece: d6, side: 'head' } : null;
+            } else {
+                // Subsequent hands: Any piece is valid. Pick random.
+                if (player.hand.length === 0) return null;
+                const randomIdx = Math.floor(Math.random() * player.hand.length);
+                return { piece: player.hand[randomIdx], side: 'head' };
             }
         }
-        return null;
+
+        // 2. Regular move (Board has pieces)
+        const validMoves: { piece: Piece, side: 'head' | 'tail' }[] = [];
+
+        for (const piece of player.hand) {
+            // Check Head
+            if (piece[0] === head || piece[1] === head) {
+                validMoves.push({ piece, side: 'head' });
+            }
+            // Check Tail
+            // Avoid adding duplicate move if head === tail, checking matching again is fine though
+            // because strict equality of objects might differ but data is same.
+            // But side differs.
+            if (piece[0] === tail || piece[1] === tail) {
+                validMoves.push({ piece, side: 'tail' });
+            }
+        }
+
+        if (validMoves.length === 0) return null;
+
+        // Pick random valid move to satisfy "escoger una jugada aleatoria"
+        const randomIdx = Math.floor(Math.random() * validMoves.length);
+        return validMoves[randomIdx];
     }
 
     public placePiece(playerId: string, rawPiece: Piece, side: 'head' | 'tail'): boolean {
