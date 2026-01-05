@@ -1,0 +1,60 @@
+.domino-board {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    /* Center initially if fits */
+    align-items: center;
+    overflow-x: auto;
+    /* Scroll horizontally if overflows */
+    padding: 2rem;
+    box-sizing: border-box;
+    background: rgba(0, 0, 0, 0.1);
+    /* Subtle marking of board area */
+    border-radius: 16px;
+}
+
+.pieces-container {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    /* Tight fit for dominoes */
+    /* Add min-width to allow scrolling */
+    min-width: min-content;
+    padding: 0 40px;
+    /* Padding for start/end */
+}
+
+.domino-board.empty {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 1.2rem;
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+}
+
+/* 
+   The pieces are horizontal by default in the chain, 
+   except Doubles which are Vertical.
+   We need to make sure they align nicely.
+*/
+.domino-board .domino-piece {
+    /* Override shadow for board view if needed */
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Hide scrollbar but keep functionality */
+.domino-board::-webkit-scrollbar {
+    height: 8px;
+}
+
+.domino-board::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.domino-board::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.domino-board::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}

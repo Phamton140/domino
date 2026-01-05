@@ -1,0 +1,262 @@
+.domino-piece {
+    background-color: #fdfdfd;
+    border-radius: 8px;
+    box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+    /* slight bevel effect */
+    border: 1px solid #ccc;
+    border-right: 2px solid #bbb;
+    border-bottom: 2px solid #bbb;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-sizing: border-box;
+    padding: 4px;
+    cursor: pointer;
+
+    transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.domino-piece:hover:not(.disabled) {
+    transform: translateY(-2px);
+    box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+}
+
+.domino-piece.disabled {
+    opacity: 0.8;
+    cursor: not-allowed;
+    background-color: #e0e0e0;
+}
+
+/* Orientation and Sizes */
+
+/* Vertical (Standard) */
+.domino-piece.vertical {
+    width: 44px;
+    height: 88px;
+    flex-direction: column;
+}
+
+.domino-piece.vertical .line {
+    width: 100%;
+    height: 2px;
+    background-color: #333;
+    margin: 4px 0;
+}
+
+/* Horizontal (Rotated) */
+.domino-piece.horizontal {
+    width: 88px;
+    height: 44px;
+    flex-direction: row;
+}
+
+.domino-piece.horizontal .line {
+    width: 2px;
+    height: 100%;
+    background-color: #333;
+    margin: 0 4px;
+}
+
+/* Sizes */
+.domino-piece.small {
+    width: 30px;
+    height: 60px;
+    border-radius: 4px;
+    padding: 2px;
+}
+
+.domino-piece.small.horizontal {
+    width: 60px;
+    height: 30px;
+}
+
+.domino-piece.small .dot {
+    width: 4px;
+    height: 4px;
+}
+
+.domino-piece.large {
+    width: 60px;
+    height: 120px;
+    border-radius: 10px;
+}
+
+.domino-piece.large.horizontal {
+    width: 120px;
+    height: 60px;
+}
+
+.domino-piece.large .dot {
+    width: 10px;
+    height: 10px;
+}
+
+
+/* Dots Layout */
+.half {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    padding: 4px;
+    box-sizing: border-box;
+    justify-items: center;
+    align-items: center;
+}
+
+.domino-piece.small .half {
+    padding: 2px;
+}
+
+.dot {
+    width: 7px;
+    height: 7px;
+    background-color: #111;
+    border-radius: 50%;
+    box-shadow: inset 1px 1px 2px rgba(255, 255, 255, 0.3);
+    display: none;
+    /* Hidden by default */
+}
+
+/* Dot Positions Grid 3x3
+   1 2 3
+   4 5 6
+   7 8 9
+*/
+
+/* Logic: We will use :nth-child to target position, but since we are generating dots dynamically 
+   it is easier to just map them to grid areas or specific cells.
+   But to keep React simple, let's just use specific classes for each dot count 
+   and place dots in specific grid cells.
+*/
+
+/* For simplicity in CSS grid, we can just place dot 1 at center, etc. */
+
+.half.val-1 .dot:nth-child(1) {
+    display: block;
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.half.val-2 .dot:nth-child(1) {
+    display: block;
+    grid-column: 3;
+    grid-row: 1;
+}
+
+.half.val-2 .dot:nth-child(2) {
+    display: block;
+    grid-column: 1;
+    grid-row: 3;
+}
+
+.half.val-3 .dot:nth-child(1) {
+    display: block;
+    grid-column: 3;
+    grid-row: 1;
+}
+
+.half.val-3 .dot:nth-child(2) {
+    display: block;
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.half.val-3 .dot:nth-child(3) {
+    display: block;
+    grid-column: 1;
+    grid-row: 3;
+}
+
+.half.val-4 .dot:nth-child(1) {
+    display: block;
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.half.val-4 .dot:nth-child(2) {
+    display: block;
+    grid-column: 3;
+    grid-row: 1;
+}
+
+.half.val-4 .dot:nth-child(3) {
+    display: block;
+    grid-column: 1;
+    grid-row: 3;
+}
+
+.half.val-4 .dot:nth-child(4) {
+    display: block;
+    grid-column: 3;
+    grid-row: 3;
+}
+
+.half.val-5 .dot:nth-child(1) {
+    display: block;
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.half.val-5 .dot:nth-child(2) {
+    display: block;
+    grid-column: 3;
+    grid-row: 1;
+}
+
+.half.val-5 .dot:nth-child(3) {
+    display: block;
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.half.val-5 .dot:nth-child(4) {
+    display: block;
+    grid-column: 1;
+    grid-row: 3;
+}
+
+.half.val-5 .dot:nth-child(5) {
+    display: block;
+    grid-column: 3;
+    grid-row: 3;
+}
+
+.half.val-6 .dot:nth-child(1) {
+    display: block;
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.half.val-6 .dot:nth-child(2) {
+    display: block;
+    grid-column: 3;
+    grid-row: 1;
+}
+
+.half.val-6 .dot:nth-child(3) {
+    display: block;
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.half.val-6 .dot:nth-child(4) {
+    display: block;
+    grid-column: 3;
+    grid-row: 2;
+}
+
+.half.val-6 .dot:nth-child(5) {
+    display: block;
+    grid-column: 1;
+    grid-row: 3;
+}
+
+.half.val-6 .dot:nth-child(6) {
+    display: block;
+    grid-column: 3;
+    grid-row: 3;
+}
+
+/* Empty (0) has no dots displayed */
