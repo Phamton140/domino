@@ -43,12 +43,12 @@
 
 .player-side.left {
     grid-area: left;
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    /* Removed border-right */
 }
 
 .player-side.right {
     grid-area: right;
-    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    /* Removed border-left */
 }
 
 .player-side.top {
@@ -62,227 +62,43 @@
     position: relative;
     border-radius: 20px;
     background-color: rgba(0, 0, 0, 0.2);
-    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+    /* Shadow/Glow to highlight the limit */
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5), 0 0 10px rgba(0, 0, 0, 0.1);
     overflow: hidden;
     margin: 10px;
 }
 
-/* ---------- MOBILE / IMMERSIVE LAYOUT ---------- */
-@media (max-width: 900px) {
-    .game-table {
-        display: block;
-        /* Disable grid */
-        position: fixed;
-        inset: 0;
-        height: 100dvh;
-        /* Dynamic viewport height */
-        width: 100vw;
-        overflow: hidden;
-    }
+/* ... */
 
-    /* 1. Board: Full Screen Background */
-    .board-area {
-        position: absolute;
-        inset: 0;
-        margin: 0;
-        border-radius: 0;
-        background: transparent;
-        /* Show felt from main container */
-        box-shadow: none;
-        z-index: 0;
-    }
-
-    /* 2. Header: Floating Badges */
-    .info-bar {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        background: transparent;
-        /* No bar background */
-        backdrop-filter: none;
-        padding: 10px;
-        pointer-events: none;
-        /* Let clicks pass through to board */
-        z-index: 50;
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-    }
-
-    .room-code-display {
-        background: rgba(0, 0, 0, 0.6);
-        padding: 5px 10px;
-        border-radius: 20px;
-        font-size: 0.9rem;
-        pointer-events: auto;
-        backdrop-filter: blur(4px);
-    }
-
-    .turn-indicator {
-        background: rgba(255, 215, 0, 0.2) !important;
-        border: 1px solid rgba(255, 215, 0, 0.5);
-        color: #ffd700;
-        font-weight: bold;
-        pointer-events: auto;
-        margin-top: 5px;
-        /* Stack if needed */
-    }
-
-    .scores {
-        display: none;
-        /* Hide scores in immersive mode to save space, or make tiny */
-    }
-
-    /* 3. Opponents: Floating Avatars */
-    .player-side {
-        position: absolute;
-        padding: 0;
-        border: none !important;
-        z-index: 20;
-        pointer-events: none;
-        /* Pass clicks */
-    }
-
-    /* Positioning Strategy (Landscape-ish) */
-    /* Top Left (Opp 3) */
-    .player-side.left {
-        top: 60px;
-        left: 10px;
-        align-items: flex-start;
-    }
-
-    /* Top Center/Right (Opp 2) */
-    .player-side.top {
-        top: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: auto;
-    }
-
-    /* Top Right (Opp 1) */
-    .player-side.right {
-        top: 60px;
-        right: 10px;
-        align-items: flex-end;
-    }
-
-    /* Card Styling: Simple Badges */
-    .player-card {
-        width: auto;
-        max-width: 120px;
-        padding: 4px 8px;
-        background: rgba(0, 0, 0, 0.4);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        border-radius: 20px;
-        flex-direction: row;
-        gap: 6px;
-        pointer-events: auto;
-        backdrop-filter: blur(2px);
-    }
-
-    .player-card.active {
-        background: rgba(255, 215, 0, 0.2);
-        border-color: #ffd700;
-        transform: scale(1.05);
-        box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
-    }
-
-    .player-avatar {
-        width: 24px;
-        height: 24px;
-        font-size: 0.8rem;
-        margin: 0;
-        border: 1px solid white;
-    }
-
-    .player-name {
-        font-size: 0.8rem;
-        max-width: 70px;
-        text-align: left;
-    }
-
-    .player-stats,
-    .hand-preview {
-        display: none;
-        /* Minimalist */
-    }
-
-    /* 4. My Hand: Floating Bottom */
-    .my-hand-area {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        background: transparent;
-        /* Removed dark gradient as requested */
-        border: none;
-        padding: 20px 0 10px;
-        z-index: 40;
-    }
-
-    .my-hand {
-        background: transparent;
-        padding: 0 10px;
-        gap: 5px;
-        justify-content: center;
-        /* Center hand */
-        width: 100%;
-        overflow-x: auto;
-        margin: 0;
-        border-radius: 0;
-    }
-
-    .my-hand .domino-piece {
-        width: 34px !important;
-        height: 68px !important;
-        border: 1px solid #999;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
-    }
-
-    .controls {
-        position: absolute;
-        top: -40px;
-        /* Float above hand */
-        right: 20px;
-        transform: none;
-        margin: 0;
-    }
-
-    .pass-btn {
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-        font-size: 0.9rem;
-        padding: 6px 16px;
-    }
-}
-
-
+/* My Hand (Bottom) */
 /* My Hand (Bottom) */
 .my-hand-area {
     grid-area: bottom;
-    background-color: rgba(0, 0, 0, 0.8);
+    background-color: transparent;
+    /* Seamless */
     padding: 10px 0 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    border-top: 2px solid rgba(255, 215, 0, 0.3);
+    border-top: none;
+    /* Remove division */
     width: 100%;
     overflow: hidden;
-    /* Container hides overflow */
 }
 
 .my-hand {
     display: flex;
-    gap: 10px;
+    gap: 5px;
+    /* Reduced gap */
     padding: 15px;
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: transparent;
+    /* Remove inner box background */
+    box-shadow: none;
     border-radius: 16px;
     margin-bottom: 10px;
     max-width: 100%;
     overflow-x: auto;
-    /* Scroll if pieces overflow */
     -webkit-overflow-scrolling: touch;
-    /* Smooth scroll on iOS */
     justify-content: flex-start;
     /* Start from left if scrolling */
 }
@@ -507,7 +323,8 @@ button:active {
 /* Vertical stack for Side players */
 .player-side.left .opponent-hand-container {
     flex-direction: column;
-    width: 24px;
+    width: 60px;
+    /* Matched to horizontal tile width */
     height: auto;
     margin-top: 0;
     margin-left: 5px;
@@ -515,41 +332,34 @@ button:active {
 
 .player-side.right .opponent-hand-container {
     flex-direction: column;
-    width: 24px;
+    width: 60px;
+    /* Matched to horizontal tile width */
     height: auto;
     margin-top: 0;
     margin-right: 5px;
-    /* Spacing from avatar (since reversed) */
     margin-left: 0;
 }
 
 .mini-tile-back {
-    width: 10px;
-    height: 18px;
+    width: 30px;
+    /* Match 'small' size width */
+    height: 60px;
+    /* Match 'small' size height */
     background: linear-gradient(135deg, #f0f0f0 0%, #d0d0d0 100%);
     border: 1px solid #999;
-    border-radius: 2px;
+    border-radius: 4px;
+    /* Slightly larger radius */
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    /* For side players, maybe rotate the back pattern if it had one, but strict rectangle is fine */
 }
 
-/* Make side tiles horizontal-ish (landscape) if we want them to look like they are sitting on the side of the table?
-   Actually, usually backs are uniform. But let's verify if 'Standard' orientation (10x18) looks good in a vertical stack.
-   Yes, it's like a stack of books.
-   
-   However, we might want to ROTATE the tiles for side players so they align with the table edge?
-   If I rotate them 90deg, they become 18x10.
-   Let's see if the user likes the simple column first. "Verse en vertical" usually means the list.
-*/
 
 .player-side.left .mini-tile-back,
 .player-side.right .mini-tile-back {
     /* Tiles lying down horizontally */
-    width: 18px;
-    height: 10px;
-    margin: 1px 0;
-    /* Vertical gap */
-    /* Update gradient for horizontal orientation */
+    width: 60px;
+    height: 30px;
+    margin: 2px 0;
+    /* Small vertical gap */
     background: linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%);
 }
 
