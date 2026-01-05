@@ -107,26 +107,19 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
         socket.emit('pass_turn', { roomId });
     };
 
-    const handleExtension = () => {
-        socket.emit('use_extension', { roomId });
-    };
-
     const currentSocketId = socket.id || myId;
     const isMyTurn = gameState.currentTurnPlayerId === currentSocketId;
     const myPlayer = gameState.players.find(p => p.id === currentSocketId);
 
     // Determines relative position: 0=Bottom(Me), 1=Right, 2=Top, 3=Left
-    // This assumes specific absolute positions: 0=South, 1=East, 2=North, 3=West
     const getRelativePosition = (absPos: number, myAbsPos: number) => {
         return (absPos - myAbsPos + 4) % 4;
     };
 
-    const myPos = myPlayer?.position ?? 0; // Default to 0 if not found (observer/error)
+    const myPos = myPlayer?.position ?? 0;
 
-    // Group players by position
     const playersByPos: { [key: number]: Player } = {};
     gameState.players.forEach((p) => {
-        // Use p.position if available, otherwise fallback to finding index (legacy safety)
         const absPos = p.position !== undefined ? p.position : gameState.players.findIndex(pl => pl.id === p.id);
         const pos = getRelativePosition(absPos, myPos);
         playersByPos[pos] = p;
@@ -134,7 +127,7 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
 
     const renderPlayerCard = (pos: number) => {
         const player = playersByPos[pos];
-        if (!player) return null; // Should not happen in 4 player game
+        if (!player) return null;
 
         const isActive = player.id === gameState.currentTurnPlayerId;
 
@@ -147,7 +140,6 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
                 <div className="player-stats">
                     {player.score} pts (indiv) | {player.hand.length} fichas
                 </div>
-                {/* Visual indicator of remaining tiles */}
                 <div className="hand-preview">
                     {Array.from({ length: Math.min(player.hand.length, 7) }).map((_, i) => (
                         <div key={i} className="mini-tile-back"></div>
@@ -166,7 +158,6 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
                 />
             )}
 
-            {/* Header / Info Bar */}
             <div className="info-bar">
                 <div className="room-code-display">
                     <span>Sala: {roomId}</span>
@@ -188,12 +179,10 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
                 </div>
             </div>
 
-            {/* Left Player */}
             <div className="player-side left">
                 {renderPlayerCard(3)}
             </div>
 
-            {/* Center Area: Board + Top Player */}
             <div className="center-area">
                 <div className="top-player-container">
                     {renderPlayerCard(2)}
@@ -204,20 +193,13 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
                 </div>
             </div>
 
-            {/* Right Player */}
             <div className="player-side right">
                 {renderPlayerCard(1)}
             </div>
 
-            {/* Bottom Area: My Hand */}
             <div className="my-hand-area">
-                {/* My Player Info (Optional, but good to see my own score) */}
-
                 <div className="controls">
                     {isMyTurn && <button onClick={handlePass} className="pass-btn">Pasar</button>}
-                    {isMyTurn && !myPlayer?.extensionUsed && (
-                        <button onClick={handleExtension} className="extension-btn">Extensión</button>
-                    )}
                 </div>
 
                 <div className="my-hand">
@@ -247,58 +229,64 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
                         );
                     })}
                 </div>
-            </div>
+            </div >
 
             {/* Overlays */}
-            {notification && (
-                <div className={`notification-toast ${notification.type}`}>
-                    {notification.message}
-                </div>
-            )}
-
-            {gameState.handWinnerId && !gameState.winnerTeam && (
-                <div className="overlay">
-                    <h2>¡Mano Terminada!</h2>
-                    <p className="winner-name">Ganador: {gameState.players.find(p => p.id === gameState.handWinnerId)?.name}</p>
-                    {gameState.winReason && (
-                        <p className="win-reason">
-                            {gameState.winReason === 'capicua' && '🎉 ¡CAPICÚA! (+30 puntos bonus)'}
-                            {gameState.winReason === 'domino' && '✨ Dominó'}
-                            {gameState.winReason === 'tranque' && '🔒 Tranque'}
-                        </p>
-                    )}
-
-                    <div className="hand-points">
-                        <h3>Puntos: +{gameState.handPoints || 0}</h3>
+            {
+                notification && (
+                    <div className={`notification-toast ${notification.type}`}>
+                        {notification.message}
                     </div>
+                )
+            }
 
-                    <div className="ready-system" style={{ marginTop: '20px' }}>
-                        <p className="ready-count">{readyCount}/{totalPlayers} listos</p>
-                        {!isReady ? (
-                            <button
-                                className="primary"
-                                style={{ fontSize: '1.2rem', padding: '10px 30px' }}
-                                onClick={() => {
-                                    socket.emit('player_ready', { roomId });
-                                    setIsReady(true);
-                                }}
-                            >
-                                ¡Listo!
-                            </button>
-                        ) : (
-                            <p>✅ Esperando...</p>
+            {
+                gameState.handWinnerId && !gameState.winnerTeam && (
+                    <div className="overlay">
+                        <h2>¡Mano Terminada!</h2>
+                        <p className="winner-name">Ganador: {gameState.players.find(p => p.id === gameState.handWinnerId)?.name}</p>
+                        {gameState.winReason && (
+                            <p className="win-reason">
+                                {gameState.winReason === 'capicua' && '🎉 ¡CAPICÚA! (+30 puntos bonus)'}
+                                {gameState.winReason === 'domino' && '✨ Dominó'}
+                                {gameState.winReason === 'tranque' && '🔒 Tranque'}
+                            </p>
                         )}
-                    </div>
-                </div>
-            )}
 
-            {gameState.winnerTeam && (
-                <div className="overlay victory">
-                    <h2>🏆 ¡Partida Terminada!</h2>
-                    <p className="victory-message">¡El Equipo {gameState.winnerTeam} gana!</p>
-                    <button onClick={() => window.location.reload()}>Salir</button>
-                </div>
-            )}
-        </div>
+                        <div className="hand-points">
+                            <h3>Puntos: +{gameState.handPoints || 0}</h3>
+                        </div>
+
+                        <div className="ready-system" style={{ marginTop: '20px' }}>
+                            <p className="ready-count">{readyCount}/{totalPlayers} listos</p>
+                            {!isReady ? (
+                                <button
+                                    className="primary"
+                                    style={{ fontSize: '1.2rem', padding: '10px 30px' }}
+                                    onClick={() => {
+                                        socket.emit('player_ready', { roomId });
+                                        setIsReady(true);
+                                    }}
+                                >
+                                    ¡Listo!
+                                </button>
+                            ) : (
+                                <p>✅ Esperando...</p>
+                            )}
+                        </div>
+                    </div>
+                )
+            }
+
+            {
+                gameState.winnerTeam && (
+                    <div className="overlay victory">
+                        <h2>🏆 ¡Partida Terminada!</h2>
+                        <p className="victory-message">¡El Equipo {gameState.winnerTeam} gana!</p>
+                        <button onClick={() => window.location.reload()}>Salir</button>
+                    </div>
+                )
+            }
+        </div >
     );
 };

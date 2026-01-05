@@ -52,7 +52,6 @@ export class GameEngine {
 
         this.gameState.players.forEach(p => {
             p.hand = [];
-            p.extensionUsed = false;
         });
 
         let deck = this.shuffleDeck(this.generateDeck());
@@ -106,22 +105,22 @@ export class GameEngine {
     // Internal tracker
     private lastWinnerId?: string;
 
-    private startTurnTimer(isExtension: boolean = false) {
+    private startTurnTimer() {
         // CRITICAL: Clear any existing timer first
         if (this.timer) {
             clearTimeout(this.timer);
             this.timer = null;
         }
 
-        // Base: 15s, Extension: +15s = 30s total
-        const duration = isExtension ? 30000 : this.TURN_DURATION;
+        // Fixed duration: 15s rigid limit
+        const duration = 15000;
         this.gameState.turnDeadline = Date.now() + duration;
 
         // Store the current player ID to verify in timeout
         const currentPlayerId = this.gameState.currentTurnPlayerId;
         const currentPlayer = this.getCurrentPlayer();
 
-        console.log(`⏱️ Starting timer for ${currentPlayer?.name}: ${duration / 1000}s (extension: ${isExtension})`);
+        console.log(`⏱️ Starting timer for ${currentPlayer?.name}: ${duration / 1000}s`);
 
         this.timer = setTimeout(() => {
             // Verify this timeout is still valid for the current player
@@ -135,15 +134,8 @@ export class GameEngine {
         }, duration);
     }
 
-    public useExtension(playerId: string): boolean {
-        if (playerId !== this.gameState.currentTurnPlayerId) return false;
-        const player = this.gameState.players.find(p => p.id === playerId);
-        if (!player || player.extensionUsed) return false;
-
-        player.extensionUsed = true;
-        this.startTurnTimer(true);
-        return true;
-    }
+    // Extension feature removed
+    // public useExtension(playerId: string): boolean { ... }
 
     private handleTimeout() {
         // Double-check we're not in a finished game

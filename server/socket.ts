@@ -235,16 +235,8 @@ export const setupSocketHandlers = (io: Server) => {
             });
         });
 
-        socket.on('use_extension', (data: { roomId: string }) => {
-            const room = roomManager.getRoom(data.roomId);
-            if (!room) return;
-            const engine = (room as any).engine as GameEngine;
-
-            const success = engine.useExtension(socket.id);
-            if (success) {
-                io.to(room.id).emit('game_update', engine.getState());
-            }
-        });
+        // EXTENSION REMOVED
+        // ANTI-CHEAT: FOCUS DETECTION
 
         // PLAYER READY FOR NEXT HAND
         socket.on('player_ready', (data: { roomId: string }) => {

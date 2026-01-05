@@ -16,10 +16,10 @@ describe('GameEngine', () => {
 
     beforeEach(() => {
         players = [
-            { id: '1', name: 'A', hand: [], score: 0, team: 'A', position: 0, extensionUsed: false },
-            { id: '2', name: 'B', hand: [], score: 0, team: 'B', position: 1, extensionUsed: false },
-            { id: '3', name: 'C', hand: [], score: 0, team: 'A', position: 2, extensionUsed: false },
-            { id: '4', name: 'D', hand: [], score: 0, team: 'B', position: 3, extensionUsed: false },
+            { id: '1', name: 'A', hand: [], score: 0, team: 'A', position: 0 },
+            { id: '2', name: 'B', hand: [], score: 0, team: 'B', position: 1 },
+            { id: '3', name: 'C', hand: [], score: 0, team: 'A', position: 2 },
+            { id: '4', name: 'D', hand: [], score: 0, team: 'B', position: 3 },
         ];
         engine = new GameEngine(players, config);
         engine.startHand();
@@ -61,8 +61,8 @@ describe('GameEngine', () => {
         const spy = jest.spyOn(console, 'log');
         const currentPlayer = engine.getState().currentTurnPlayerId;
 
-        // Fast-forward time
-        jest.advanceTimersByTime(8001);
+        // Fast-forward time (15s limit)
+        jest.advanceTimersByTime(15001);
 
         expect(spy).toHaveBeenCalledWith(expect.stringContaining('Timeout'));
         // Turn should have changed
