@@ -17,14 +17,16 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
     // Auto-scroll to center/end when board changes
     useEffect(() => {
         if (scrollContainerRef.current) {
-            // Future: Implement auto-scroll logic here
+            // Auto-scroll to right
+            const container = scrollContainerRef.current;
+            container.scrollLeft = container.scrollWidth;
         }
     }, [board]);
 
     if (board.length === 0) {
         return (
             <div className="domino-board empty">
-                <div className="empty-message">Waiting for first move...</div>
+                <div className="empty-message">Esperando jugada inicial...</div>
             </div>
         );
     }
