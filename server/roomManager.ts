@@ -16,7 +16,6 @@ export class RoomManager {
             score: 0,
             team: 'A', // Host is team A
             position: 0, // Host is always South (0)
-            extensionUsed: false
         };
 
         const newRoom: Room = {
@@ -73,7 +72,6 @@ export class RoomManager {
             score: 0,
             team,
             position,
-            extensionUsed: false
         };
 
         room.players.push(newPlayer);
