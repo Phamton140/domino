@@ -493,25 +493,34 @@ button:active {
     height: 24px;
 }
 
+/* Adjust card layout for side players */
+.player-side.left .compact-player-card {
+    flex-direction: row;
+    align-items: center;
+}
+
+.player-side.right .compact-player-card {
+    flex-direction: row-reverse;
+    align-items: center;
+}
+
 /* Vertical stack for Side players */
-.player-side.left .opponent-hand-container,
-.player-side.right .opponent-hand-container {
+.player-side.left .opponent-hand-container {
     flex-direction: column;
     width: 24px;
-    /* Fix width for vertical stack */
     height: auto;
     margin-top: 0;
     margin-left: 5px;
-    /* Spacing from avatar */
 }
 
-/* Adjust card layout for side players to be row-based (Avatar | Tiles) instead of column (Avatar / Tiles) 
-   so the vertical tile stack sits beside the avatar, not below it 
-*/
-.player-side.left .compact-player-card,
-.player-side.right .compact-player-card {
-    flex-direction: row;
-    align-items: center;
+.player-side.right .opponent-hand-container {
+    flex-direction: column;
+    width: 24px;
+    height: auto;
+    margin-top: 0;
+    margin-right: 5px;
+    /* Spacing from avatar (since reversed) */
+    margin-left: 0;
 }
 
 .mini-tile-back {
