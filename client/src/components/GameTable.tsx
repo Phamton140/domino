@@ -125,6 +125,25 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
         playersByPos[pos] = p;
     });
 
+    // Check if player has any valid moves
+    const hasValidMove = myPlayer?.hand.some(piece => {
+        // If board is empty
+        if (gameState.board.length === 0) {
+            // First hand MUST be double 6
+            if (gameState.handNumber === 1) {
+                return piece[0] === 6 && piece[1] === 6;
+            }
+            // Other hands: any piece can start
+            return true;
+        }
+
+        const head = gameState.board[0]?.piece[0];
+        const tail = gameState.board[gameState.board.length - 1]?.piece[1];
+
+        // Check matching
+        return piece[0] === head || piece[1] === head || piece[0] === tail || piece[1] === tail;
+    });
+
     const renderPlayerCard = (pos: number) => {
         const player = playersByPos[pos];
         if (!player) return null;
@@ -199,7 +218,17 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
 
             <div className="my-hand-area">
                 <div className="controls">
-                    {isMyTurn && <button onClick={handlePass} className="pass-btn">Pasar</button>}
+                    {isMyTurn && (
+                        <button
+                            onClick={handlePass}
+                            className="pass-btn"
+                            disabled={hasValidMove}
+                            title={hasValidMove ? "No puedes pasar si tienes fichas para jugar" : "Pasar turno"}
+                            style={hasValidMove ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                        >
+                            Pasar
+                        </button>
+                    )}
                 </div>
 
                 <div className="my-hand">
