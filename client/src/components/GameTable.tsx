@@ -116,17 +116,19 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
     const myPlayer = gameState.players.find(p => p.id === currentSocketId);
 
     // Determines relative position: 0=Bottom(Me), 1=Right, 2=Top, 3=Left
-    const getRelativePosition = (playerIndex: number, myIndex: number) => {
-        if (myIndex === -1) return playerIndex; // Observer view?
-        return (playerIndex - myIndex + 4) % 4;
+    // This assumes specific absolute positions: 0=South, 1=East, 2=North, 3=West
+    const getRelativePosition = (absPos: number, myAbsPos: number) => {
+        return (absPos - myAbsPos + 4) % 4;
     };
 
-    const myIndex = gameState.players.findIndex(p => p.id === currentSocketId);
+    const myPos = myPlayer?.position ?? 0; // Default to 0 if not found (observer/error)
 
     // Group players by position
     const playersByPos: { [key: number]: Player } = {};
-    gameState.players.forEach((p, i) => {
-        const pos = getRelativePosition(i, myIndex);
+    gameState.players.forEach((p) => {
+        // Use p.position if available, otherwise fallback to finding index (legacy safety)
+        const absPos = p.position !== undefined ? p.position : gameState.players.findIndex(pl => pl.id === p.id);
+        const pos = getRelativePosition(absPos, myPos);
         playersByPos[pos] = p;
     });
 
