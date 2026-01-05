@@ -41,20 +41,28 @@
     box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-/* Hide scrollbar but keep functionality */
+/* Hide scrollbar but keep functionality (will be handled by JS drag) */
+.domino-board {
+    /* ... existing styles ... */
+    overflow: auto;
+    /* Allow scroll logic to work */
+    cursor: grab;
+    /* Indicate draggability */
+
+    /* Hide native scrollbars */
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE 10+ */
+}
+
 .domino-board::-webkit-scrollbar {
-    height: 8px;
+    display: none;
+    /* Chrome/Safari */
+    width: 0;
+    height: 0;
 }
 
-.domino-board::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.domino-board::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-}
-
-.domino-board::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
+.domino-board:active {
+    cursor: grabbing;
 }

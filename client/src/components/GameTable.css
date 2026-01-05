@@ -2,14 +2,15 @@
     display: grid;
     grid-template-areas:
         "header header header"
-        "left center right"
+        "left top right"
+        "left board right"
         "bottom bottom bottom";
     grid-template-columns: 200px 1fr 200px;
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: auto auto 1fr auto;
+    /* Top player row auto size */
     height: 100vh;
     width: 100vw;
     background-color: #1e6b38;
-    /* Green Felt */
     background-image:
         radial-gradient(circle at center, rgba(255, 255, 255, 0.1) 0%, transparent 70%),
         repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.02) 0px, rgba(0, 0, 0, 0.02) 2px, transparent 2px, transparent 4px);
@@ -18,7 +19,7 @@
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Info Bar (Top) */
+/* Info Bar */
 .info-bar {
     grid-area: header;
     display: flex;
@@ -30,30 +31,14 @@
     z-index: 10;
 }
 
-.room-code-display span {
-    margin-right: 10px;
-    font-weight: bold;
-}
-
-.scores {
-    font-size: 1.1rem;
-    font-weight: bold;
-    text-shadow: 1px 1px 2px black;
-}
-
-.turn-indicator {
-    background-color: rgba(255, 255, 255, 0.2);
-    padding: 4px 12px;
-    border-radius: 20px;
-}
-
-/* Players on sides */
+/* Player Areas */
 .player-side {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    padding: 10px;
+    z-index: 5;
 }
 
 .player-side.left {
@@ -66,102 +51,211 @@
     border-left: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* .player-side.top is handled by center-area now */
-
-/* Let's rethink the Board Center to include Top Player */
-.center-area {
-    grid-area: center;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    position: relative;
+.player-side.top {
+    grid-area: top;
+    padding-bottom: 0;
 }
 
-.top-player-container {
-    margin-bottom: 10px;
-}
-
-/* Player Card Styles */
-.player-card {
-    background-color: rgba(0, 0, 0, 0.5);
-    border-radius: 12px;
-    padding: 10px;
-    width: 140px;
-    text-align: center;
-    transition: all 0.3s ease;
-    border: 2px solid transparent;
-}
-
-.player-card.active {
-    border-color: #ffd700;
-    box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
-    background-color: rgba(0, 0, 0, 0.7);
-    transform: scale(1.05);
-}
-
-.player-card.team-A {
-    border-top: 3px solid #ff4444;
-}
-
-.player-card.team-B {
-    border-top: 3px solid #4444ff;
-}
-
-.player-avatar {
-    width: 40px;
-    height: 40px;
-    background-color: #ddd;
-    border-radius: 50%;
-    margin: 0 auto 5px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: #333;
-    font-weight: bold;
-    font-size: 1.2rem;
-}
-
-.player-name {
-    font-weight: bold;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.player-stats {
-    font-size: 0.85rem;
-    color: #ccc;
-    margin-top: 4px;
-}
-
-.hand-preview {
-    display: flex;
-    justify-content: center;
-    margin-top: 6px;
-    gap: 2px;
-}
-
-.mini-tile-back {
-    width: 8px;
-    height: 16px;
-    background-color: #e0e0e0;
-    border-radius: 2px;
-}
-
-
-/* Main Board Area */
-.board-container {
-    flex: 1;
-    width: 100%;
+/* Board Area */
+.board-area {
+    grid-area: board;
     position: relative;
     border-radius: 20px;
     background-color: rgba(0, 0, 0, 0.2);
-    /* Darker green patch for table */
     box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
     overflow: hidden;
+    margin: 10px;
 }
+
+/* ---------- MOBILE / IMMERSIVE LAYOUT ---------- */
+@media (max-width: 900px) {
+    .game-table {
+        display: block;
+        /* Disable grid */
+        position: fixed;
+        inset: 0;
+        height: 100dvh;
+        /* Dynamic viewport height */
+        width: 100vw;
+        overflow: hidden;
+    }
+
+    /* 1. Board: Full Screen Background */
+    .board-area {
+        position: absolute;
+        inset: 0;
+        margin: 0;
+        border-radius: 0;
+        background: transparent;
+        /* Show felt from main container */
+        box-shadow: none;
+        z-index: 0;
+    }
+
+    /* 2. Header: Floating Badges */
+    .info-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: transparent;
+        /* No bar background */
+        backdrop-filter: none;
+        padding: 10px;
+        pointer-events: none;
+        /* Let clicks pass through to board */
+        z-index: 50;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .room-code-display {
+        background: rgba(0, 0, 0, 0.6);
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        pointer-events: auto;
+        backdrop-filter: blur(4px);
+    }
+
+    .turn-indicator {
+        background: rgba(255, 215, 0, 0.2) !important;
+        border: 1px solid rgba(255, 215, 0, 0.5);
+        color: #ffd700;
+        font-weight: bold;
+        pointer-events: auto;
+        margin-top: 5px;
+        /* Stack if needed */
+    }
+
+    .scores {
+        display: none;
+        /* Hide scores in immersive mode to save space, or make tiny */
+    }
+
+    /* 3. Opponents: Floating Avatars */
+    .player-side {
+        position: absolute;
+        padding: 0;
+        border: none !important;
+        z-index: 20;
+        pointer-events: none;
+        /* Pass clicks */
+    }
+
+    /* Positioning Strategy (Landscape-ish) */
+    /* Top Left (Opp 3) */
+    .player-side.left {
+        top: 60px;
+        left: 10px;
+        align-items: flex-start;
+    }
+
+    /* Top Center/Right (Opp 2) */
+    .player-side.top {
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: auto;
+    }
+
+    /* Top Right (Opp 1) */
+    .player-side.right {
+        top: 60px;
+        right: 10px;
+        align-items: flex-end;
+    }
+
+    /* Card Styling: Simple Badges */
+    .player-card {
+        width: auto;
+        max-width: 120px;
+        padding: 4px 8px;
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 20px;
+        flex-direction: row;
+        gap: 6px;
+        pointer-events: auto;
+        backdrop-filter: blur(2px);
+    }
+
+    .player-card.active {
+        background: rgba(255, 215, 0, 0.2);
+        border-color: #ffd700;
+        transform: scale(1.05);
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+    }
+
+    .player-avatar {
+        width: 24px;
+        height: 24px;
+        font-size: 0.8rem;
+        margin: 0;
+        border: 1px solid white;
+    }
+
+    .player-name {
+        font-size: 0.8rem;
+        max-width: 70px;
+        text-align: left;
+    }
+
+    .player-stats,
+    .hand-preview {
+        display: none;
+        /* Minimalist */
+    }
+
+    /* 4. My Hand: Floating Bottom */
+    .my-hand-area {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: transparent;
+        /* Removed dark gradient as requested */
+        border: none;
+        padding: 20px 0 10px;
+        z-index: 40;
+    }
+
+    .my-hand {
+        background: transparent;
+        padding: 0 10px;
+        gap: 5px;
+        justify-content: center;
+        /* Center hand */
+        width: 100%;
+        overflow-x: auto;
+        margin: 0;
+        border-radius: 0;
+    }
+
+    .my-hand .domino-piece {
+        width: 34px !important;
+        height: 68px !important;
+        border: 1px solid #999;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    }
+
+    .controls {
+        position: absolute;
+        top: -40px;
+        /* Float above hand */
+        right: 20px;
+        transform: none;
+        margin: 0;
+    }
+
+    .pass-btn {
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        font-size: 0.9rem;
+        padding: 6px 16px;
+    }
+}
+
 
 /* My Hand (Bottom) */
 .my-hand-area {
@@ -172,6 +266,9 @@
     flex-direction: column;
     align-items: center;
     border-top: 2px solid rgba(255, 215, 0, 0.3);
+    width: 100%;
+    overflow: hidden;
+    /* Container hides overflow */
 }
 
 .my-hand {
@@ -181,6 +278,61 @@
     background-color: rgba(255, 255, 255, 0.05);
     border-radius: 16px;
     margin-bottom: 10px;
+    max-width: 100%;
+    overflow-x: auto;
+    /* Scroll if pieces overflow */
+    -webkit-overflow-scrolling: touch;
+    /* Smooth scroll on iOS */
+    justify-content: flex-start;
+    /* Start from left if scrolling */
+}
+
+@media (max-width: 900px) {
+
+    /* Hand Container fits small pieces naturally */
+    .my-hand {
+        height: 70px;
+        /* 60px piece + padding */
+        align-items: center;
+        padding-bottom: 5px;
+    }
+
+    /* Ensure pieces have a bit of shadow but NO scaling */
+    .my-hand .domino-piece {
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+        border: 1px solid #999;
+    }
+
+    /* Fix Avatar Visibility/Styling */
+    .player-avatar {
+        background: #333;
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: 50%;
+    }
+}
+
+/* Mobile Hand Adjustments */
+@media (max-width: 768px) {
+    .my-hand-area {
+        padding: 5px 0 10px;
+    }
+
+    .my-hand {
+        width: 100vw;
+        /* Full width */
+        border-radius: 0;
+        padding: 10px 5px;
+        gap: 5px;
+        background: transparent;
+    }
+
+    /* Ensure controls (pass button) don't get squashed */
+    .controls {
+        margin-bottom: 5px;
+    }
 }
 
 .controls {
@@ -239,7 +391,173 @@ button:active {
     margin-bottom: 10px;
 }
 
-.win-reason {
-    font-size: 1.5rem;
-    color: #aaa;
+
+/* Compact Player Card (New Design) */
+.compact-player-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    position: relative;
+    width: 80px;
+    /* Reduced width */
+}
+
+.compact-player-card .avatar-wrapper {
+    position: relative;
+    width: 60px;
+    /* Space for border */
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.compact-player-card .player-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #333;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    z-index: 2;
+}
+
+/* Timer Ring SVG */
+.timer-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 60px;
+    height: 60px;
+    transform: rotate(-90deg);
+    /* Start from top */
+    z-index: 1;
+    pointer-events: none;
+}
+
+.timer-ring circle {
+    fill: transparent;
+    stroke-width: 4;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s linear;
+}
+
+.timer-ring-bg {
+    stroke: rgba(255, 255, 255, 0.1);
+}
+
+.timer-ring-progress {
+    stroke: #ffd700;
+    /* Gold for active turn */
+    filter: drop-shadow(0 0 2px #ffd700);
+}
+
+/* Color based on team */
+.team-A .timer-ring-progress {
+    stroke: #ff4444;
+    filter: drop-shadow(0 0 2px #ff4444);
+}
+
+.team-B .timer-ring-progress {
+    stroke: #4444ff;
+    filter: drop-shadow(0 0 2px #4444ff);
+}
+
+
+.compact-player-card .player-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: white;
+    text-shadow: 0 1px 2px black;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    text-align: center;
+}
+
+.compact-player-card .opponent-hand-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* Allow overlap if needed, or just small gap */
+    gap: 2px;
+    margin-top: 2px;
+    /* Default to horizontal for Top player */
+    height: 24px;
+}
+
+/* Vertical stack for Side players */
+.player-side.left .opponent-hand-container,
+.player-side.right .opponent-hand-container {
+    flex-direction: column;
+    width: 24px;
+    /* Fix width for vertical stack */
+    height: auto;
+    margin-top: 0;
+    margin-left: 5px;
+    /* Spacing from avatar */
+}
+
+/* Adjust card layout for side players to be row-based (Avatar | Tiles) instead of column (Avatar / Tiles) 
+   so the vertical tile stack sits beside the avatar, not below it 
+*/
+.player-side.left .compact-player-card,
+.player-side.right .compact-player-card {
+    flex-direction: row;
+    align-items: center;
+}
+
+.mini-tile-back {
+    width: 10px;
+    height: 18px;
+    background: linear-gradient(135deg, #f0f0f0 0%, #d0d0d0 100%);
+    border: 1px solid #999;
+    border-radius: 2px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    /* For side players, maybe rotate the back pattern if it had one, but strict rectangle is fine */
+}
+
+/* Make side tiles horizontal-ish (landscape) if we want them to look like they are sitting on the side of the table?
+   Actually, usually backs are uniform. But let's verify if 'Standard' orientation (10x18) looks good in a vertical stack.
+   Yes, it's like a stack of books.
+   
+   However, we might want to ROTATE the tiles for side players so they align with the table edge?
+   If I rotate them 90deg, they become 18x10.
+   Let's see if the user likes the simple column first. "Verse en vertical" usually means the list.
+*/
+
+.player-side.left .mini-tile-back,
+.player-side.right .mini-tile-back {
+    /* Tiles lying down horizontally */
+    width: 18px;
+    height: 10px;
+    margin: 1px 0;
+    /* Vertical gap */
+    /* Update gradient for horizontal orientation */
+    background: linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%);
+}
+
+/* Mobile Overrides if needed */
+@media (max-width: 900px) {
+
+    .player-side.left {
+        align-items: flex-start;
+        margin-left: 10px;
+    }
+
+    .player-side.right {
+        align-items: flex-end;
+        margin-right: 10px;
+    }
+
+    .compact-player-card {
+        width: auto;
+    }
 }

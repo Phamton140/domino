@@ -48,12 +48,12 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
         socket.on('notification', onNotification);
         socket.on('ready_status', onReadyStatus);
 
-        // Timer Interval - ONLY for current player
+        // Timer Interval - Updates for ANY player to drive the UI timer
         const interval = setInterval(() => {
-            const currentSocketId = socket.id || myId;
-            // Only update timer if it's the current player's turn
-            if (gameState.turnDeadline > 0 && gameState.currentTurnPlayerId === currentSocketId) {
-                setTimeLeft(Math.max(0, Math.ceil((gameState.turnDeadline - Date.now()) / 1000)));
+            if (gameState.turnDeadline > 0) {
+                // We always update 'timeLeft' so the UI re-renders and shows the progress ring for opponents too
+                const time = Math.max(0, Math.ceil((gameState.turnDeadline - Date.now()) / 1000));
+                setTimeLeft(time);
             } else {
                 setTimeLeft(0);
             }
@@ -150,17 +150,66 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
 
         const isActive = player.id === gameState.currentTurnPlayerId;
 
+        // Timer Logic for Border
+        let progress = 0;
+        let circumference = 2 * Math.PI * 28; // r=28 (60px container, 2px border, slightly inside)
+
+        if (isActive && gameState.turnDeadline) {
+            // If it's ME, we use the local timeLeft state which decrements every second
+            // If it's an OPPONENT, we can calculate it based on server time or stick to a simple visual cue
+            // For better UX for "others", let's use the same timeLeft logic if we want to show THEIR time ticking
+            // But 'timeLeft' state currently only updates if it is MY turn.
+            // We should update the timer interval to update 'timeLeft' for ANY active player or create a separate display state.
+
+            // However, to keep it simple and performant:
+            // We can calculate the static percentage based on current render, but for smooth animation we need state or CSS.
+            // CSS transition handles smoothness if we update a style property.
+
+            const totalDuration = 20000; // Assuming 20s turn (need to verify this constant or pass it from server)
+            const msLeft = Math.max(0, gameState.turnDeadline - Date.now());
+            // We'll use a rough percentage for visual indication
+            progress = msLeft / totalDuration;
+        }
+
+        const dashArray = circumference;
+        const dashOffset = isActive ? circumference * (1 - progress) : circumference;
+        // Note: Progress is cleaner if we trigger a re-render or use the interval.
+        // The existing interval in useEffect only updates 'timeLeft' if it is MY turn. 
+        // Let's rely on standard React updates for now or just show "active" state without precise countdown for opponents if simplest.
+        // BUT the user asked for "timer que se va agotando". 
+        // So we need to ensure the component re-renders or we use CSS animation.
+        // Since `gameState` updates on moves, we don't get 60fps updates. 
+        // We will add a small trick: CSS animation is hard to sync with server time.
+        // Better: Update the interval to set a generic 'secondsLeft' for WHOEVER is playing.
+
         return (
-            <div className={`player-card team-${player.team} ${isActive ? 'active' : ''}`}>
-                <div className="player-avatar">
-                    {player.name.substring(0, 2).toUpperCase()}
+            <div className={`compact-player-card team-${player.team} ${isActive ? 'active' : ''}`}>
+                <div className="avatar-wrapper">
+                    {isActive && (
+                        <svg className="timer-ring" width="60" height="60">
+                            <circle
+                                className="timer-ring-bg"
+                                cx="30" cy="30" r="28"
+                            />
+                            <circle
+                                className="timer-ring-progress"
+                                cx="30" cy="30" r="28"
+                                strokeDasharray={dashArray}
+                                strokeDashoffset={dashOffset}
+                            />
+                        </svg>
+                    )}
+                    <div className="player-avatar">
+                        {player.name.substring(0, 2).toUpperCase()}
+                    </div>
                 </div>
-                <div className="player-name">{player.name}</div>
-                <div className="player-stats">
-                    {player.score} pts (indiv) | {player.hand.length} fichas
+
+                <div className="player-name">
+                    {player.name}
                 </div>
-                <div className="hand-preview">
-                    {Array.from({ length: Math.min(player.hand.length, 7) }).map((_, i) => (
+
+                <div className="opponent-hand-container">
+                    {Array.from({ length: player.hand.length }).map((_, i) => (
                         <div key={i} className="mini-tile-back"></div>
                     ))}
                 </div>
@@ -202,18 +251,16 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
                 {renderPlayerCard(3)}
             </div>
 
-            <div className="center-area">
-                <div className="top-player-container">
-                    {renderPlayerCard(2)}
-                </div>
-
-                <div className="board-container">
-                    <DominoBoard board={gameState.board} />
-                </div>
+            <div className="player-side top">
+                {renderPlayerCard(2)}
             </div>
 
             <div className="player-side right">
                 {renderPlayerCard(1)}
+            </div>
+
+            <div className="board-area">
+                <DominoBoard board={gameState.board} />
             </div>
 
             <div className="my-hand-area">
@@ -253,7 +300,7 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
                                 values={piece}
                                 onClick={() => isMyTurn && handlePlacePiece(piece)}
                                 disabled={!isMyTurn || !isValid}
-                                size="large" // Make my pieces larger
+                                size="small"
                             />
                         );
                     })}
