@@ -145,7 +145,7 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
                 </div>
                 <div className="player-name">{player.name}</div>
                 <div className="player-stats">
-                    {player.score} pts | {player.hand.length} fichas
+                    {player.score} pts (indiv) | {player.hand.length} fichas
                 </div>
                 {/* Visual indicator of remaining tiles */}
                 <div className="hand-preview">
@@ -174,9 +174,9 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
 
                 {gameState.players.length === 4 && (
                     <div className="scores">
-                        <span style={{ color: '#ff4444' }}>Team A: {gameState.players.filter(p => p.team === 'A').reduce((s, p) => s + p.score, 0)}</span>
+                        <span style={{ color: '#ff4444' }}>Team A: {gameState.teamScores?.A || 0}</span>
                         <span style={{ margin: '0 10px' }}>vs</span>
-                        <span style={{ color: '#4444ff' }}>Team B: {gameState.players.filter(p => p.team === 'B').reduce((s, p) => s + p.score, 0)}</span>
+                        <span style={{ color: '#4444ff' }}>Team B: {gameState.teamScores?.B || 0}</span>
                     </div>
                 )}
 

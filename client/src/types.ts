@@ -23,6 +23,7 @@ export interface GameState {
     winnerTeam: 'A' | 'B' | null;
     winReason?: 'domino' | 'tranque' | 'capicua';
     handPoints?: number; // Points earned in this hand (for display breakdown)
+    teamScores: { A: number, B: number };
 }
 
 export interface Room {

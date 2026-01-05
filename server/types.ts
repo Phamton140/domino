@@ -29,6 +29,7 @@ export interface GameState {
     handWinnerId?: string;
     winReason?: 'domino' | 'tranque' | 'capicua';
     handPoints?: number; // Points earned in this hand (for display breakdown)
+    teamScores: { A: number, B: number };
 }
 
 export interface RoomConfig {

@@ -18,7 +18,8 @@ export class GameEngine {
             currentTurnPlayerId: '',
             turnDeadline: 0,
             consecutivePasses: 0,
-            handNumber: 1
+            handNumber: 1,
+            teamScores: { A: 0, B: 0 }
         };
     }
 
@@ -433,18 +434,24 @@ export class GameEngine {
         }
 
         // Update Score - Add points to ALL team members
+        // Update Score - Add points to TEAM SCORES
         const teamPlayers = this.gameState.players.filter(p => p.team === winner.team);
         const pointsToAdd = totalTable + bonus;
+
+        // update dedicated team score
+        this.gameState.teamScores[winner.team] += pointsToAdd;
 
         // Store points earned this hand for UI display
         this.gameState.handPoints = pointsToAdd;
 
-        teamPlayers.forEach(p => p.score += pointsToAdd);
+        // Also update individual player score (just for tracking, not for game logic anymore)
+        winner.score += pointsToAdd; // Only winner gets the "individual" credit if we want to keep it
 
         console.log(`Team ${winner.team} wins hand! Points: ${totalTable} + Bonus: ${bonus} = ${pointsToAdd}`);
+        console.log(`Current Scores: Team A: ${this.gameState.teamScores.A}, Team B: ${this.gameState.teamScores.B}`);
 
-        // Check Match Win Condition - Sum ALL team members' scores
-        const teamScore = teamPlayers.reduce((sum, p) => sum + p.score, 0);
+        // Check Match Win Condition - Use TEAM SCORE
+        const teamScore = this.gameState.teamScores[winner.team];
         if (teamScore >= 200) {
             this.gameState.winnerTeam = winner.team;
             console.log(`🏆 Team ${winner.team} wins the match with ${teamScore} points!`);
