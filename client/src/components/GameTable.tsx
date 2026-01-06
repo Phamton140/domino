@@ -20,92 +20,7 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
     const [readyCount, setReadyCount] = useState(0);
     const [totalPlayers, setTotalPlayers] = useState(4);
     const [isReady, setIsReady] = useState(false);
-
-    useEffect(() => {
-        function onGameUpdate(state: GameState) {
-            setGameState(state);
-            setNotification(null);
-            // Reset ready status when new hand starts
-            if (state.handNumber !== gameState.handNumber) {
-                setIsReady(false);
-                setReadyCount(0);
-            }
-        }
-
-        function onNotification(data: { message: string, type: string }) {
-            setNotification(data);
-            setTimeout(() => setNotification(null), 3000);
-        }
-
-        function onReadyStatus(data: { readyCount: number, totalPlayers: number, readyPlayers: string[] }) {
-            setReadyCount(data.readyCount);
-            setTotalPlayers(data.totalPlayers);
-            const currentSocketId = socket.id || myId;
-            setIsReady(data.readyPlayers.includes(currentSocketId));
-        }
-
-        socket.on('game_update', onGameUpdate);
-        socket.on('notification', onNotification);
-        socket.on('ready_status', onReadyStatus);
-
-        // Timer Interval - Updates for ANY player to drive the UI timer
-        const interval = setInterval(() => {
-            if (gameState.turnDeadline > 0) {
-                // We always update 'timeLeft' so the UI re-renders and shows the progress ring for opponents too
-                const time = Math.max(0, Math.ceil((gameState.turnDeadline - Date.now()) / 1000));
-                setTimeLeft(time);
-            } else {
-                setTimeLeft(0);
-            }
-        }, 100);
-
-        return () => {
-            socket.off('game_update', onGameUpdate);
-            socket.off('notification', onNotification);
-            socket.off('ready_status', onReadyStatus);
-            clearInterval(interval);
-        }
-    }, [gameState.turnDeadline, gameState.currentTurnPlayerId, gameState.handNumber, roomId, myId]);
-
-    const handlePlacePiece = (piece: Piece) => {
-        const head = gameState.board[0]?.piece[0];
-        const tail = gameState.board[gameState.board.length - 1]?.piece[1];
-
-        if (gameState.board.length === 0) {
-            socket.emit('place_piece', { roomId, piece, side: 'tail' });
-            return;
-        }
-
-        const canPlayHead = piece[0] === head || piece[1] === head;
-        const canPlayTail = piece[0] === tail || piece[1] === tail;
-
-        // DOMINICAN RULE: If both ends are the same number, ALWAYS play to the right (tail)
-        if (head === tail && (canPlayHead || canPlayTail)) {
-            socket.emit('place_piece', { roomId, piece, side: 'tail' });
-            return;
-        }
-
-        if (canPlayHead && !canPlayTail) {
-            socket.emit('place_piece', { roomId, piece, side: 'head' });
-        } else if (canPlayTail && !canPlayHead) {
-            socket.emit('place_piece', { roomId, piece, side: 'tail' });
-        } else if (canPlayHead && canPlayTail) {
-            setPendingPiece(piece);
-        } else {
-            alert("¡Esta ficha no encaja!");
-        }
-    };
-
-    const handleSideSelection = (side: 'head' | 'tail') => {
-        if (pendingPiece) {
-            socket.emit('place_piece', { roomId, piece: pendingPiece, side });
-            setPendingPiece(null);
-        }
-    };
-
-    const handlePass = () => {
-        socket.emit('pass_turn', { roomId });
-    };
+    const [prevConsecutivePasses, setPrevConsecutivePasses] = useState(0);
 
     const currentSocketId = socket.id || myId;
     const isMyTurn = gameState.currentTurnPlayerId === currentSocketId;
@@ -141,12 +56,148 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
         const tail = gameState.board[gameState.board.length - 1]?.piece[1];
 
         // Check matching
-        return piece[0] === head || piece[1] === head || piece[0] === tail || piece[1] === tail;
+        const canPlay = piece[0] === head || piece[1] === head || piece[0] === tail || piece[1] === tail;
+        return canPlay;
     });
 
+    console.log(`Render: ID=${currentSocketId}, Turn=${gameState.currentTurnPlayerId}, MyTurn=${isMyTurn}, ValidMove=${hasValidMove}`);
+
+    useEffect(() => {
+        function onGameUpdate(state: GameState) {
+            setGameState(state);
+            setNotification(null);
+            // Reset ready status when new hand starts
+            if (state.handNumber !== gameState.handNumber) {
+                setIsReady(false);
+                setReadyCount(0);
+            }
+        }
+
+        function onNotification(data: { message: string, type: string }) {
+            setNotification(data);
+            setTimeout(() => setNotification(null), 2000);
+        }
+
+        function onReadyStatus(data: { readyCount: number, totalPlayers: number, readyPlayers: string[] }) {
+            setReadyCount(data.readyCount);
+            setTotalPlayers(data.totalPlayers);
+            const currentSocketId = socket.id || myId;
+            setIsReady(data.readyPlayers.includes(currentSocketId));
+        }
+
+        socket.on('game_update', onGameUpdate);
+        socket.on('notification', onNotification);
+        socket.on('ready_status', onReadyStatus);
+
+        // Timer Interval - Updates for ANY player to drive the UI timer
+        const interval = setInterval(() => {
+            if (gameState.turnDeadline > 0) {
+                // We always update 'timeLeft' so the UI re-renders and shows the progress ring for opponents too
+                const time = Math.max(0, Math.ceil((gameState.turnDeadline - Date.now()) / 1000));
+                setTimeLeft(time);
+            } else {
+                setTimeLeft(0);
+            }
+        }, 100);
+
+        return () => {
+            socket.off('game_update', onGameUpdate);
+            socket.off('notification', onNotification);
+            socket.off('ready_status', onReadyStatus);
+            clearInterval(interval);
+        }
+    }, [gameState.turnDeadline, gameState.currentTurnPlayerId, gameState.handNumber, roomId, myId]);
+
+    // Auto-Pass Logic
+    useEffect(() => {
+        if (isMyTurn && !hasValidMove) {
+            console.log("Auto-Pass Effect: No moves, scheduling pass...");
+            const timer = setTimeout(() => {
+                console.log("Auto-Pass Effect: Emitting pass_turn");
+                socket.emit('pass_turn', { roomId });
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [isMyTurn, hasValidMove, roomId]);
+
+    // Pass Notification Logic
+    useEffect(() => {
+        if (gameState.consecutivePasses > prevConsecutivePasses) {
+            const currentPlayerIdx = gameState.players.findIndex(p => p.id === gameState.currentTurnPlayerId);
+            // Previous player index (wrapping) - whoever just passed
+            const prevPlayerIdx = (currentPlayerIdx - 1 + gameState.players.length) % gameState.players.length;
+            const prevPlayer = gameState.players[prevPlayerIdx];
+
+            if (prevPlayer) {
+                setNotification({
+                    message: `El jugador ${prevPlayer.name} ha pasado`,
+                    type: 'info'
+                });
+                setTimeout(() => setNotification(null), 2000);
+            }
+        }
+        setPrevConsecutivePasses(gameState.consecutivePasses);
+    }, [gameState.consecutivePasses, prevConsecutivePasses, gameState.currentTurnPlayerId, gameState.players]);
+
+
+    const handlePlacePiece = (piece: Piece) => {
+        console.log("Attempting to place piece:", piece, "Room:", roomId);
+        const head = gameState.board[0]?.piece[0];
+        const tail = gameState.board[gameState.board.length - 1]?.piece[1];
+
+        if (gameState.board.length === 0) {
+            socket.emit('place_piece', { roomId, piece, side: 'tail' });
+            return;
+        }
+
+        const canPlayHead = piece[0] === head || piece[1] === head;
+        const canPlayTail = piece[0] === tail || piece[1] === tail;
+
+        // DOMINICAN RULE: If both ends are the same number, ALWAYS play to the right (tail)
+        if (head === tail && (canPlayHead || canPlayTail)) {
+            socket.emit('place_piece', { roomId, piece, side: 'tail' });
+            return;
+        }
+
+        if (canPlayHead && !canPlayTail) {
+            socket.emit('place_piece', { roomId, piece, side: 'head' });
+        } else if (canPlayTail && !canPlayHead) {
+            socket.emit('place_piece', { roomId, piece, side: 'tail' });
+        } else if (canPlayHead && canPlayTail) {
+            setPendingPiece(piece);
+        } else {
+            alert("¡Esta ficha no encaja!");
+        }
+    };
+
+    const handleSideSelection = (side: 'head' | 'tail') => {
+        if (pendingPiece) {
+            socket.emit('place_piece', { roomId, piece: pendingPiece, side });
+            setPendingPiece(null);
+        }
+    };
+
+
+
     const renderPlayerCard = (pos: number) => {
+
         const player = playersByPos[pos];
-        if (!player) return null;
+
+        // Debug placeholder for missing players
+        if (!player) {
+            return (
+                <div className="compact-player-card placeholder">
+                    <div className="avatar-wrapper">
+                        <div className="player-avatar" style={{ borderStyle: 'dashed', opacity: 0.5 }}>
+                            ?
+                        </div>
+                    </div>
+                    <div className="player-name" style={{ opacity: 0.5 }}>
+                        Esperando...
+                    </div>
+                </div>
+            );
+        }
 
         const isActive = player.id === gameState.currentTurnPlayerId;
 
@@ -229,6 +280,7 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
             <div className="info-bar">
                 <div className="room-code-display">
                     <span>Sala: {roomId}</span>
+
                 </div>
 
                 {gameState.players.length === 4 && (
@@ -265,16 +317,30 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
 
             <div className="my-hand-area">
                 <div className="controls">
-                    {isMyTurn && (
-                        <button
-                            onClick={handlePass}
-                            className="pass-btn"
-                            disabled={hasValidMove}
-                            title={hasValidMove ? "No puedes pasar si tienes fichas para jugar" : "Pasar turno"}
-                            style={hasValidMove ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-                        >
-                            Pasar
-                        </button>
+                    {/* My Player Info (Avatar + Name) */}
+                    {myPlayer && (
+                        <div className={`my-player-info team-${myPlayer.team}`}>
+                            <div className="avatar-wrapper">
+                                {isMyTurn && (
+                                    <svg className="timer-ring" width="50" height="50">
+                                        <circle className="timer-ring-bg" cx="25" cy="25" r="23" />
+                                        <circle
+                                            className="timer-ring-progress"
+                                            cx="25" cy="25" r="23"
+                                            strokeDasharray={2 * Math.PI * 23}
+                                            strokeDashoffset={isMyTurn ? (2 * Math.PI * 23) * (1 - (timeLeft / 20)) : 2 * Math.PI * 23}
+                                        />
+                                    </svg>
+                                )}
+                                <div className="player-avatar">
+                                    {myPlayer.name.substring(0, 2).toUpperCase()}
+                                </div>
+                            </div>
+                            <div className="player-details">
+                                <span className="name">{myPlayer.name}</span>
+                                <span className="score" style={{ fontSize: '0.8rem', opacity: 0.8 }}>Team {myPlayer.team}</span>
+                            </div>
+                        </div>
                     )}
                 </div>
 
@@ -300,7 +366,7 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
                                 values={piece}
                                 onClick={() => isMyTurn && handlePlacePiece(piece)}
                                 disabled={!isMyTurn || !isValid}
-                                size="small"
+                                size="medium"
                             />
                         );
                     })}

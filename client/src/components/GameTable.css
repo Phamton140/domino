@@ -63,7 +63,7 @@
     border-radius: 20px;
     background-color: rgba(0, 0, 0, 0.2);
     /* Shadow/Glow to highlight the limit */
-    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5), 0 0 10px rgba(0, 0, 0, 0.1);
+    /* box-shadow removed as per user request */
     overflow: hidden;
     margin: 10px;
 }
@@ -83,7 +83,71 @@
     border-top: none;
     /* Remove division */
     width: 100%;
-    overflow: hidden;
+    /* overflow: hidden; Removed to allow taller content if needed, though 'my-hand' handles scroll */
+}
+
+.my-player-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    /* Highlights removed */
+    background: transparent;
+    border: none;
+    padding: 5px 15px;
+}
+
+.my-player-info .avatar-wrapper {
+    width: 50px;
+    height: 50px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.my-player-info .player-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #444;
+    /* Fallback */
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 1rem;
+    z-index: 2;
+    border: 2px solid white;
+}
+
+.team-A .player-avatar {
+    background: #d32f2f;
+}
+
+.team-B .player-avatar {
+    background: #304ffe;
+}
+
+.my-player-info .timer-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform: rotate(-90deg);
+    z-index: 1;
+}
+
+.my-player-info .player-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.my-player-info .name {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: white;
 }
 
 .my-hand {
@@ -107,8 +171,8 @@
 
     /* Hand Container fits small pieces naturally */
     .my-hand {
-        height: 70px;
-        /* 60px piece + padding */
+        height: 100px;
+        /* ~90px piece + padding */
         align-items: center;
         padding-bottom: 5px;
     }
@@ -306,7 +370,7 @@ button:active {
     gap: 2px;
     margin-top: 2px;
     /* Default to horizontal for Top player */
-    height: 24px;
+    height: 60px;
 }
 
 /* Adjust card layout for side players */
