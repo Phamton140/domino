@@ -104,11 +104,24 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                     curX = (currentDirX === 1) ? pX + w : pX;
                 } else {
                     if (vCount === 0) {
-                        pX = (currentDirX === 1) ? curX - w : curX;
+                        // FIX OVERLAP: Place Vertical piece OUTSIDE the current horizontal chain.
+                        // If moving Right (dir=1), curX is the Right Edge. Place at curX.
+                        // If moving Left (dir=-1), curX is the Left Edge. Place at curX - w.
+                        pX = (currentDirX === 1) ? curX : curX - w;
+
                         const offset = (lastH / 2) + (h / 2);
                         pY = (vDirY === -1) ? curY - offset : curY;
                     } else {
-                        pX = (currentDirX === 1) ? curX - w : curX;
+                        // Stack subsequent vertical pieces aligned with the first one
+                        pX = (currentDirX === 1) ? curX : curX - w; // Maintain X alignment
+                        // Actually, for stack, X should match the PREVIOUS vertical piece's X.
+                        // Since we didn't update curX for vertical steps, we need to track the "Vertical Column X".
+                        // Use a variable or infer from previous loop?
+                        // SIMPLER: In this scope, 'curX' hasn't changed since entering State 1.
+                        // So the same logic 'curX' or 'curX - w' applies if we want them stacked vertically.
+                        // Wait, if dir=1, pX=curX. If we keep pX=curX, they stack perfectly.
+                        pX = (currentDirX === 1) ? curX : curX - w;
+
                         pY = (vDirY === -1) ? curY - GAP - h : curY + GAP;
                     }
                     curY = (vDirY === -1) ? pY : pY + h;
