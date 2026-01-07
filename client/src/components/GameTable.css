@@ -249,8 +249,8 @@ html,
 
 .player-side.left .compact-player-card {
     display: flex;
-    flex-direction: row;
-    /* Inline: Avatar -> Chips */
+    flex-direction: column-reverse;
+    /* Stack: Hand (Top) -> Avatar (Bottom) */
     align-items: center;
     gap: 12px;
 }
@@ -272,8 +272,8 @@ html,
 
 .player-side.right .compact-player-card {
     display: flex;
-    flex-direction: row-reverse;
-    /* Inline: Avatar <- Chips */
+    flex-direction: column;
+    /* Stack: Avatar (Top) -> Hand (Bottom) */
     align-items: center;
     gap: 12px;
 }
@@ -299,7 +299,7 @@ html,
 
     /* Inline: Avatar -> Left, Rack -> Right */
     display: flex;
-    flex-direction: row;
+    flex-direction: row-reverse;
     align-items: center;
 }
 
