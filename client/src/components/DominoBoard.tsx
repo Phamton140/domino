@@ -24,301 +24,142 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
     const positionedPieces = useMemo(() => {
         if (board.length === 0) return [];
 
-        // 1. INFERENCE ENGINE (Structure Analysis)
         const midIndex = Math.floor(board.length / 2);
         const centerPiece = board[midIndex];
 
         const leftChain: { piece: Piece, matchVal: number }[] = [];
         const rightChain: { piece: Piece, matchVal: number }[] = [];
 
-        // --- Build Right Chain (Center -> Tail) ---
         let previousPiece = centerPiece.piece;
         for (let i = midIndex + 1; i < board.length; i++) {
             const p = board[i].piece;
             const matchVal = (p[0] === previousPiece[0] || p[0] === previousPiece[1]) ? p[0] : p[1];
-            rightChain.push({ piece: p, matchVal: matchVal });
+            rightChain.push({ piece: p, matchVal });
             previousPiece = p;
         }
 
-        // --- Build Left Chain (Center -> Head) ---
         previousPiece = centerPiece.piece;
         for (let i = midIndex - 1; i >= 0; i--) {
             const p = board[i].piece;
             const matchVal = (p[0] === previousPiece[0] || p[0] === previousPiece[1]) ? p[0] : p[1];
-            leftChain.push({ piece: p, matchVal: matchVal });
+            leftChain.push({ piece: p, matchVal });
             previousPiece = p;
         }
 
-        // 2. LAYOUT ENGINE
         const GAP = 2;
-        const LIMIT_X = 350; // Tighter limit to avoid hitting players
-        const MAX_HORIZONTAL_PIECES = 4; // Fold after 5th piece (Index 4)
-
+        const MAX_HORIZONTAL = 6;
         const results: any[] = [];
 
-        // A. Center Piece
         const centerIsDouble = centerPiece.piece[0] === centerPiece.piece[1];
-        const centerW = centerIsDouble ? 30 : 60;
-        const centerH = centerIsDouble ? 60 : 30;
+        const cW = centerIsDouble ? 30 : 60;
+        const cH = centerIsDouble ? 60 : 30;
 
         results.push({
             piece: centerPiece.piece,
-            x: -centerW / 2,
-            y: -centerH / 2,
-            width: centerW,
-            height: centerH,
-            isDouble: centerIsDouble,
+            x: -cW / 2, y: -cH / 2,
+            width: cW, height: cH,
             orientation: centerIsDouble ? "vertical" : "horizontal"
         });
 
-        // B. Chain Layout Helper (State Machine for Z-Turn)
-        const layoutChain = (chain: any[], initialX: number, initialY: number, initialDir: number) => {
-            let curX = initialX;
-            let curY = initialY;
-            let dir = initialDir; // 1 = Right, -1 = Left
-            let state = 0; // 0 = Horizontal, 1 = Vertical
-
-            // Turn Direction: Right Chain turns UP (-1), Left Chain turns DOWN (+1)
-            const verticalDir = -initialDir;
-
-            // Track vertical stack state
-            let verticalCenterX = 0;
-            let verticalStackCount = 0;
-            let verticalHasDouble = false;
-
-            // Previous piece dimensions for connection calculation
-            let prevW = 0;
-            let prevH = centerH; // Start with center piece dims (Initial H)
+        const layoutChain = (chain: any[], initX: number, initY: number, dirX: number) => {
+            let curX = initX;
+            let curY = initY;
+            let currentDirX = dirX;
+            let state = 0;
+            let vDirY = (dirX === 1) ? -1 : 1;
+            let vCount = 0;
+            let vHasDouble = false;
+            let lastH = cH;
 
             chain.forEach((item, index) => {
                 const { piece, matchVal } = item;
                 const isDouble = piece[0] === piece[1];
 
-                // --- 1. DETERMINE DIMENSIONS ---
+                if (state === 0 && index >= MAX_HORIZONTAL && !isDouble) {
+                    state = 1;
+                    vCount = 0;
+                    vHasDouble = false;
+                }
+
                 let w, h;
-                const isVerticalFlow = (state === 1);
-
-                if (isVerticalFlow) {
-                    w = isDouble ? 60 : 30; // Double is Horizontal(60) in Vertical Flow
-                    h = isDouble ? 30 : 60;
+                if (state === 0) {
+                    w = isDouble ? 30 : 60; h = isDouble ? 60 : 30;
                 } else {
-                    w = isDouble ? 30 : 60; // Standard Horizontal Flow
-                    h = isDouble ? 60 : 30;
+                    w = isDouble ? 60 : 30; h = isDouble ? 30 : 60;
                 }
 
-                // --- 2. SWITCH TO VERTICAL CHECK ---
+                let renderValues: Piece = [...piece];
                 if (state === 0) {
-                    let potentialFarEdgeX = (dir === 1) ? curX + GAP + w : curX - GAP - w;
-                    // Add tolerance for Doubles at the edge
-                    const hitLimit = (dir === 1 && potentialFarEdgeX > LIMIT_X) || (dir === -1 && potentialFarEdgeX < -LIMIT_X);
-
-                    const readyToTurn = (hitLimit || index >= MAX_HORIZONTAL_PIECES);
-                    const forceTurn = (index >= MAX_HORIZONTAL_PIECES + 1);
-
-                    if ((readyToTurn && !isDouble) || forceTurn) {
-                        state = 1; // Enter Vertical Mode
-                        verticalStackCount = 0;
-                        verticalHasDouble = false;
-
-                        // Correct dims for the new vertical orientation
-                        if (isDouble) { w = 60; h = 30; } else { w = 30; h = 60; }
-                    }
+                    if (currentDirX === 1) renderValues = (piece[0] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
+                    else renderValues = (piece[1] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
+                } else {
+                    if (vDirY === -1) renderValues = (piece[1] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
+                    else renderValues = (piece[0] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
                 }
 
-                // --- 3. CONNECTION LOGIC (Match Values) ---
-                let p0 = piece[0];
-                let p1 = piece[1];
-                let renderValues = piece;
-
+                let pX = 0, pY = 0;
                 if (state === 0) {
-                    if (dir === 1) renderValues = (p0 === matchVal) ? [p0, p1] : [p1, p0];
-                    else renderValues = (p1 === matchVal) ? [p0, p1] : [p1, p0];
+                    pX = (currentDirX === 1) ? curX + GAP : curX - GAP - w;
+                    pY = curY - (h / 2);
+                    curX = (currentDirX === 1) ? pX + w : pX;
                 } else {
-                    if (verticalDir === 1) { // Down
-                        renderValues = (p0 === matchVal) ? [p0, p1] : [p1, p0];
-                    } else { // Up
-                        renderValues = (p1 === matchVal) ? [p0, p1] : [p1, p0];
+                    if (vCount === 0) {
+                        pX = (currentDirX === 1) ? curX - w : curX;
+                        const offset = (lastH / 2) + (h / 2);
+                        pY = (vDirY === -1) ? curY - offset : curY;
+                    } else {
+                        pX = (currentDirX === 1) ? curX - w : curX;
+                        pY = (vDirY === -1) ? curY - GAP - h : curY + GAP;
                     }
-                }
+                    curY = (vDirY === -1) ? pY : pY + h;
+                    vCount++;
+                    if (isDouble) vHasDouble = true;
 
-                // --- 4. POSITION CALCULATION ---
-                let pieceX = 0;
-                let pieceY = 0;
-
-                if (state === 0) {
-                    // --- HORIZONTAL PLACEMENT ---
-                    if (dir === 1) { // Right
-                        pieceX = curX + GAP;
-                        curX = pieceX + w;
-                    } else { // Left
-                        pieceX = curX - GAP - w;
-                        curX = pieceX;
-                    }
-                    pieceY = curY - (h / 2);
-
-                } else {
-                    // --- VERTICAL PLACEMENT ---
-                    // A. First Vertical Piece (Corner)
-                    if (verticalStackCount === 0) {
-                        // Align X: Flush with the End of the Horizontal Chain
-                        // Remove GAP for Side Connection (Flush L-Turn)
-                        if (dir === 1) {
-                            pieceX = curX;
-                        } else {
-                            pieceX = curX - w;
-                        }
-
-                        pieceY = curY - (h / 2); // Start at Axis Y
-
-                        // ALIGNMENT FIX: Edge-to-Edge with Offset
-                        // Offset = (PrevHeight/2 + CurrHeight/2)
-                        const offset = (prevH / 2) + (h / 2);
-
-                        if (verticalDir === 1) pieceY += offset; // Shift Down
-                        else pieceY -= offset; // Shift Up
-
-                        verticalCenterX = pieceX + (w / 2);
-                    }
-                    // B. Subsequent Vertical Pieces
-                    else {
-                        pieceX = verticalCenterX - (w / 2);
-
-                        // Stack relative to previous vertical curY
-                        if (verticalDir === 1) { // Down
-                            pieceY = curY + GAP;
-                        } else { // Up
-                            pieceY = curY - GAP - h;
-                        }
-                    }
-
-                    // Update Vertical Boundaries (curY becomes the EDGE)
-                    if (verticalDir === 1) { // Down
-                        curY = pieceY + h;
-                    } else { // Up
-                        curY = pieceY;
-                    }
-
-                    // Update Stack Stats
-                    verticalStackCount++;
-                    if (isDouble) verticalHasDouble = true;
-
-                    // CHECK EXIT CONDITION (Return to Horizontal)
-                    // Rule: 2 pieces normally. 3 pieces if stack contains a double.
-                    const limit = verticalHasDouble ? 3 : 2;
-
-                    if (verticalStackCount >= limit) {
+                    if (vCount >= (vHasDouble ? 3 : 2)) {
                         state = 0;
-                        dir *= -1; // Reverse Direction
-
-                        // Step Out Logic:
-                        if (verticalDir === 1) curY += 15;
-                        else curY -= 15;
-
-                        // Reset X to emerge correctly from the Vertical Stack
-                        if (dir === 1) {
-                            curX = pieceX + w; // Start Right of Vertical
-                        } else {
-                            curX = pieceX; // Start Left of Vertical
-                        }
+                        currentDirX *= -1;
+                        curX = pX + (currentDirX === 1 ? w : 0);
+                        curY = pY + (h / 2);
                     }
                 }
 
-                // Push Result
-                results.push({
-                    piece: renderValues,
-                    x: pieceX,
-                    y: pieceY,
-                    width: w,
-                    height: h,
-                    isDouble,
-                    orientation: (w === 30) ? "vertical" : "horizontal"
-                });
-
-                prevW = w;
-                prevH = h;
+                results.push({ piece: renderValues, x: pX, y: pY, width: w, height: h, orientation: (w === 30 ? "vertical" : "horizontal") });
+                lastH = h;
             });
         };
 
-        layoutChain(rightChain, centerW / 2, 0, 1);
-        layoutChain(leftChain, -centerW / 2, 0, -1);
-
+        layoutChain(rightChain, cW / 2, 0, 1);
+        layoutChain(leftChain, -cW / 2, 0, -1);
         return results;
     }, [board]);
 
-    // 3. MANUAL BOARD NAVIGATION (Pan & Zoom Lock)
-    // User requested "No Resize" and "No Jumps". 
-    // We lock scale and position, enabling Drag-to-Pan.
-    // SCALE FIX: Set to 1.0 to match Hand Piece Size exactly.
     const [viewState, setViewState] = useState({ x: 0, y: 0, scale: 1.0, isDragging: false, startX: 0, startY: 0 });
     const [initialized, setInitialized] = useState(false);
 
-    // Initial Center Calculation (Run Only Once)
+    // Initial Center Calculation (Run Only Once or on Resize if desired, here just once to lock)
     useEffect(() => {
         if (board.length > 0 && !initialized && dim.w > 0) {
             // Start centered perfectly on screen as requested
             setViewState(prev => ({
                 ...prev,
                 x: dim.w / 2,
-                y: dim.h * 0.45, // Optical Center (slightly higher to accommodate Player Hand)
-                scale: 1.0 // Ensure forced 1:1 scale on init
+                y: dim.h * 0.45, // Optical Center
+                scale: 1.0
             }));
             setInitialized(true);
         }
     }, [dim, board.length, initialized]);
 
-    // Drag Handlers
-    const handleMouseDown = (e: React.MouseEvent) => {
-        setViewState(prev => ({ ...prev, isDragging: true, startX: e.clientX - prev.x, startY: e.clientY - prev.y }));
-    };
-
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (!viewState.isDragging) return;
-        setViewState(prev => ({
-            ...prev,
-            x: e.clientX - prev.startX,
-            y: e.clientY - prev.startY
-        }));
-    };
-
-    const handleMouseUp = () => {
-        setViewState(prev => ({ ...prev, isDragging: false }));
-    };
-
-    const handleMouseLeave = () => {
-        if (viewState.isDragging) setViewState(prev => ({ ...prev, isDragging: false }));
-    };
-
-    if (board.length === 0) return <div className="domino-board empty">Esperando salida...</div>;
+    const handleMouseDown = (e: React.MouseEvent) => setViewState(p => ({ ...p, isDragging: true, startX: e.clientX - p.x, startY: e.clientY - p.y }));
+    const handleMouseMove = (e: React.MouseEvent) => { if (viewState.isDragging) setViewState(p => ({ ...p, x: e.clientX - p.startX, y: e.clientY - p.startY })); };
+    const handleMouseUp = () => setViewState(p => ({ ...p, isDragging: false }));
 
     return (
-        <div
-            className="domino-board"
-            ref={containerRef}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseLeave}
-            style={{ cursor: viewState.isDragging ? 'grabbing' : 'grab' }}
-        >
-            <div className="pieces-layer" style={{
-                transform: `translate(${viewState.x}px, ${viewState.y}px) scale(${viewState.scale})`
-            }}>
+        <div className="domino-board" ref={containerRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
+            <div className="pieces-layer" style={{ transform: `translate(${viewState.x}px, ${viewState.y}px)` }}>
                 {positionedPieces.map((item, i) => (
-                    <div
-                        key={i}
-                        className="piece-wrapper"
-                        style={{
-                            transform: `translate(${item.x}px, ${item.y}px)`,
-                            width: item.width,
-                            height: item.height
-                        }}
-                    >
-                        <DominoPiece
-                            values={item.piece}
-                            orientation={item.orientation}
-                            size="medium"
-                            disabled
-                        />
+                    <div key={i} className="piece-wrapper" style={{ transform: `translate(${item.x}px, ${item.y}px)`, width: item.width, height: item.height }}>
+                        <DominoPiece values={item.piece} orientation={item.orientation} size="medium" disabled />
                     </div>
                 ))}
             </div>

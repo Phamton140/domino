@@ -287,27 +287,34 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
                     </div>
                 )}
 
+                // Reemplaza el bloque de renderizado de la mano (alrededor de la línea 220) por este:
                 <div className="my-hand-container">
                     {myPlayer?.hand.map((piece, i) => {
                         const head = gameState.board[0]?.piece[0];
                         const tail = gameState.board[gameState.board.length - 1]?.piece[1];
+                        const isDouble = piece[0] === piece[1];
+                        const boardLen = gameState.board.length;
+
                         let isValid = false;
 
-                        if (gameState.board.length === 0) {
-                            if (gameState.handNumber === 1) {
-                                isValid = (piece[0] === 6 && piece[1] === 6);
-                            } else {
-                                isValid = true;
-                            }
-                        } else if (piece[0] === head || piece[1] === head || piece[0] === tail || piece[1] === tail) {
-                            isValid = true;
+                        if (boardLen === 0) {
+                            isValid = gameState.handNumber === 1 ? (piece[0] === 6 && piece[1] === 6) : true;
+                        } else {
+                            // Regla: No se puede girar con un doble si llegamos al límite de 7 (índice 6)
+                            const canPlayHead = piece[0] === head || piece[1] === head;
+                            const canPlayTail = piece[0] === tail || piece[1] === tail;
+
+                            // Si una punta está en el límite de 7, y la pieza es doble, bloqueamos ese lado
+                            // Aquí simplificamos: si toca girar, los dobles se deshabilitan
+                            const isAtLimit = boardLen >= 7;
+                            isValid = (canPlayHead || canPlayTail) && !(isAtLimit && isDouble);
                         }
 
                         return (
                             <DominoPiece
                                 key={i}
                                 values={piece}
-                                onClick={() => isMyTurn && handlePlacePiece(piece)}
+                                onClick={() => isMyTurn && isValid && handlePlacePiece(piece)}
                                 disabled={!isMyTurn || !isValid}
                                 size="medium"
                             />

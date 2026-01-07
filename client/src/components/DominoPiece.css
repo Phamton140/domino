@@ -1,40 +1,45 @@
-/* === PREMIUM MINIMALIST DOMINO PIECE === */
+/* === PREMIUM MINIMALIST DOMINO PIECE - RESTORED & ALIGNED === */
 .domino-piece {
     background-color: #f5f5f7;
-    /* Off-white, easier on eyes */
+    /* Color blanquecino estilo Apple */
     border-radius: 6px;
     box-shadow:
         0 2px 5px rgba(0, 0, 0, 0.2),
-        /* Soft Drop Shadow */
+        /* Sombra proyectada */
         inset 0 1px 0 rgba(255, 255, 255, 0.8),
-        /* Highlight */
+        /* Brillo superior interno */
         inset 0 -1px 0 rgba(0, 0, 0, 0.1);
-    /* Lowlight */
+    /* Sombra inferior interna */
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+
+    /* CONFIGURACIÓN CRÍTICA PARA EL TABLERO */
     padding: 4px;
+    margin: 0;
     box-sizing: border-box;
+    /* El padding NO aumenta el tamaño total de 30x60 */
+
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
     position: relative;
     overflow: hidden;
 }
 
-/* Orientation: Vertical (Default) */
+/* Orientación: Vertical (Dimensiones exactas para el motor) */
 .domino-piece.vertical {
-    width: 30px;
-    height: 60px;
+    width: 30px !important;
+    height: 60px !important;
 }
 
-/* Orientation: Horizontal */
+/* Orientación: Horizontal (Dimensiones exactas para el motor) */
 .domino-piece.horizontal {
-    width: 60px;
-    height: 30px;
+    width: 60px !important;
+    height: 30px !important;
     flex-direction: row;
 }
 
-/* Divider Line (Subtle) */
+/* Línea divisoria sutil */
 .domino-piece.vertical .line {
     width: 100%;
     height: 1px;
@@ -49,7 +54,7 @@
     margin: 0 2px;
 }
 
-/* Dots Container */
+/* Contenedor de puntos */
 .domino-piece .half {
     flex: 1;
     display: grid;
@@ -57,7 +62,7 @@
     position: relative;
 }
 
-/* Dot Grid System (3x3 Matrix Logic) */
+/* Sistema de Rejilla para Puntos (3x3 Matrix) */
 .val-0 {
     grid-template-areas: ". . ." ". . ." ". . .";
 }
@@ -86,63 +91,60 @@
     grid-template-areas: "a . b" "c . d" "e . f";
 }
 
-/* Actual Dot Styling */
+/* Estilo de los puntos */
 .domino-piece .dot {
     width: 4px;
     height: 4px;
     background-color: #1c1c1e;
-    /* Almost Black */
     border-radius: 50%;
     box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.3);
-    /* Inner depth */
 }
 
-/* Piece Interaction */
-.domino-piece:hover:not(.disabled) {
-    transform: scale(1.05) translateY(-2px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
-    z-index: 10;
+/* Asignación de áreas de rejilla */
+.domino-piece .half>span:nth-child(1) {
+    grid-area: a;
 }
 
-/* Selected State */
-.domino-piece.selected {
-    outline: 2px solid #007AFF;
-    /* Apple Blue */
-    outline-offset: 2px;
+.domino-piece .half>span:nth-child(2) {
+    grid-area: b;
 }
 
-/* Disabled State */
+.domino-piece .half>span:nth-child(3) {
+    grid-area: c;
+}
+
+.domino-piece .half>span:nth-child(4) {
+    grid-area: d;
+}
+
+.domino-piece .half>span:nth-child(5) {
+    grid-area: e;
+}
+
+.domino-piece .half>span:nth-child(6) {
+    grid-area: f;
+}
+
+/* Interacción: Solo habilitada para fichas que no están en el tablero */
+.my-hand-container .domino-piece:hover:not(.disabled) {
+    transform: scale(1.1) translateY(-10px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+}
+
+/* Estado Deshabilitado (Para fichas en el tablero) */
 .domino-piece.disabled {
     cursor: default;
-    /* No visual dimming for board pieces, they should look crisp */
 }
 
-/* Sizes */
-/* .domino-piece.small is default board usage, styles inherited or inline */
-
-/* .domino-piece.medium is default hand usage */
-
-/* Draggable / Hand Specifics */
-.my-hand-container .domino-piece {
-    /* Inherit base size (30x60) to match the table */
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-}
-/* FIX: Assign dots to grid areas */
-.domino-piece .half > span:nth-child(1) { grid-area: a; }
-.domino-piece .half > span:nth-child(2) { grid-area: b; }
-.domino-piece .half > span:nth-child(3) { grid-area: c; }
-.domino-piece .half > span:nth-child(4) { grid-area: d; }
-.domino-piece .half > span:nth-child(5) { grid-area: e; }
-.domino-piece .half > span:nth-child(6) { grid-area: f; }
-
-/* OPPONENT HANDS (Face Down) */
+/* Fichas del oponente (Ocultas) */
 .domino-piece.opponent-hidden {
-    background: #e0e0e0; /* Simple back color */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    background: #e0e0e0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     cursor: default;
 }
+
 .domino-piece.opponent-hidden .line,
 .domino-piece.opponent-hidden .half {
-    display: none; /* Hide dots and line */
+    display: none;
 }
-
