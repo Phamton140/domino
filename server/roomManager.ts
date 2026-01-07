@@ -28,7 +28,7 @@ export class RoomManager {
                 maxPlayers: 4,
                 isPrivate,
                 targetScore: 200,
-                turnDuration: 15 // 15 seconds per turn
+                turnDuration: 5 // 5 seconds per turn (Testing Speed)
             },
             gameState: null,
             invitedPlayers: [], // Initialize empty

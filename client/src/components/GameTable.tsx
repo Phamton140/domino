@@ -14,7 +14,6 @@ interface Props {
 
 export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
     const [gameState, setGameState] = useState<GameState>(initialState);
-    const [timeLeft, setTimeLeft] = useState(0);
     const [notification, setNotification] = useState<{ message: string, type: string } | null>(null);
     const [pendingPiece, setPendingPiece] = useState<Piece | null>(null);
     const [readyCount, setReadyCount] = useState(0);
@@ -89,22 +88,10 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
         socket.on('notification', onNotification);
         socket.on('ready_status', onReadyStatus);
 
-        // Timer Interval - Updates for ANY player to drive the UI timer
-        const interval = setInterval(() => {
-            if (gameState.turnDeadline > 0) {
-                // We always update 'timeLeft' so the UI re-renders and shows the progress ring for opponents too
-                const time = Math.max(0, Math.ceil((gameState.turnDeadline - Date.now()) / 1000));
-                setTimeLeft(time);
-            } else {
-                setTimeLeft(0);
-            }
-        }, 100);
-
         return () => {
             socket.off('game_update', onGameUpdate);
             socket.off('notification', onNotification);
             socket.off('ready_status', onReadyStatus);
-            clearInterval(interval);
         }
     }, [gameState.turnDeadline, gameState.currentTurnPlayerId, gameState.handNumber, roomId, myId]);
 
@@ -201,64 +188,26 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
 
         const isActive = player.id === gameState.currentTurnPlayerId;
 
-        // Timer Logic for Border
-        let progress = 0;
-        let circumference = 2 * Math.PI * 28; // r=28 (60px container, 2px border, slightly inside)
-
+        // Calculate remaining time for animation sync
+        let remainingStyle = {};
         if (isActive && gameState.turnDeadline) {
-            // If it's ME, we use the local timeLeft state which decrements every second
-            // If it's an OPPONENT, we can calculate it based on server time or stick to a simple visual cue
-            // For better UX for "others", let's use the same timeLeft logic if we want to show THEIR time ticking
-            // But 'timeLeft' state currently only updates if it is MY turn.
-            // We should update the timer interval to update 'timeLeft' for ANY active player or create a separate display state.
-
-            // However, to keep it simple and performant:
-            // We can calculate the static percentage based on current render, but for smooth animation we need state or CSS.
-            // CSS transition handles smoothness if we update a style property.
-
-            const totalDuration = 20000; // Assuming 20s turn (need to verify this constant or pass it from server)
             const msLeft = Math.max(0, gameState.turnDeadline - Date.now());
-            // We'll use a rough percentage for visual indication
-            progress = msLeft / totalDuration;
+            remainingStyle = { '--timer-duration': `${msLeft}ms` } as React.CSSProperties;
         }
 
-        const dashArray = circumference;
-        const dashOffset = isActive ? circumference * (1 - progress) : circumference;
-        // Note: Progress is cleaner if we trigger a re-render or use the interval.
-        // The existing interval in useEffect only updates 'timeLeft' if it is MY turn. 
-        // Let's rely on standard React updates for now or just show "active" state without precise countdown for opponents if simplest.
-        // BUT the user asked for "timer que se va agotando". 
-        // So we need to ensure the component re-renders or we use CSS animation.
-        // Since `gameState` updates on moves, we don't get 60fps updates. 
-        // We will add a small trick: CSS animation is hard to sync with server time.
-        // Better: Update the interval to set a generic 'secondsLeft' for WHOEVER is playing.
+        // Timer Logic for Border is now handled via CSS ::after on .player-avatar
+        // No JS calculation needed for visual ring.
 
         return (
-            <div className={`compact-player-card team-${player.team} ${isActive ? 'active' : ''}`}>
+            <div className={`compact-player-card team-${player.team} ${isActive ? 'active-turn' : ''}`}>
                 <div className="player-info-group">
                     <div className="avatar-wrapper">
-                        {isActive && (
-                            <svg className="timer-ring" width="60" height="60">
-                                <circle
-                                    className="timer-ring-bg"
-                                    cx="30" cy="30" r="28"
-                                />
-                                <circle
-                                    className="timer-ring-progress"
-                                    cx="30" cy="30" r="28"
-                                    strokeDasharray={dashArray}
-                                    strokeDashoffset={dashOffset}
-                                />
-                            </svg>
-                        )}
-                        <div className="player-avatar">
+                        {/* Timer is now handled via CSS ::after on the avatar */}
+                        <div className="player-avatar" style={remainingStyle}>
                             {player.name.substring(0, 2).toUpperCase()}
                         </div>
                     </div>
 
-                    <div className="player-name">
-                        {player.name}
-                    </div>
                 </div>
 
                 <div className="opponent-hand-container">
@@ -296,8 +245,8 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
                         flexDirection: 'column',
                         gap: '2px'
                     }}>
-                        <div style={{ color: '#ff6666', fontWeight: 'bold' }}>Team A: {gameState.teamScores?.A || 0}</div>
-                        <div style={{ color: '#6666ff', fontWeight: 'bold' }}>Team B: {gameState.teamScores?.B || 0}</div>
+                        <div className="score-item team-A">Team A: {gameState.teamScores?.A || 0}</div>
+                        <div className="score-item team-B">Team B: {gameState.teamScores?.B || 0}</div>
                     </div>
                 )}
             </div>
@@ -325,29 +274,14 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
             <div className="player-me">
                 {/* My Player Info (Avatar + Name) */}
                 {myPlayer && (
-                    <div className="player-info-group">
-                        <div className="avatar-wrapper">
-                            {/* Timer Ring */}
-                            {isMyTurn && (
-                                <svg className="timer-ring" width="56" height="56">
-                                    <circle className="timer-ring-bg" cx="28" cy="28" r="26" stroke="transparent" />
-                                    <circle
-                                        className="timer-ring-progress"
-                                        cx="28" cy="28" r="26"
-                                        strokeDasharray={2 * Math.PI * 26}
-                                        strokeDashoffset={isMyTurn ? (2 * Math.PI * 26) * (1 - (timeLeft / 20)) : 2 * Math.PI * 26}
-                                        stroke="lime"
-                                        fill="none"
-                                        strokeWidth="3"
-                                    />
-                                </svg>
-                            )}
-                            <div className="player-avatar">
-                                {myPlayer.name.substring(0, 2).toUpperCase()}
+                    <div className={`compact-player-card team-${myPlayer.team} ${isMyTurn ? 'active-turn' : ''}`}>
+                        <div className="player-info-group">
+                            <div className="avatar-wrapper">
+                                {/* Timer Ring is now handled via CSS ::after */}
+                                <div className="player-avatar">
+                                    {myPlayer.name.substring(0, 2).toUpperCase()}
+                                </div>
                             </div>
-                        </div>
-                        <div className="player-name">
-                            {myPlayer.name}
                         </div>
                     </div>
                 )}

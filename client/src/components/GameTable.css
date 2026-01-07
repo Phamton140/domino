@@ -58,18 +58,19 @@ html,
 
 /* === UI LAYER (Floating) === */
 
-/* Top Right: Score Board */
+/* Top Left: Score Board */
 .info-bar {
     position: absolute;
     top: 24px;
-    right: 24px;
-    left: auto;
+    left: 24px;
+    /* Relocated to Left */
+    right: auto;
     z-index: 100;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    align-items: flex-end;
-    /* Right align text/boxes */
+    align-items: flex-start;
+    /* Align Left */
 }
 
 .room-info {
@@ -78,7 +79,9 @@ html,
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
-    margin-left: 4px;
+    margin-left: 0;
+    margin-right: 4px;
+    text-align: left;
 }
 
 .scoreboard {
@@ -101,12 +104,18 @@ html,
     padding: 4px 0;
 }
 
-.score-item.team-a {
-    color: #81c784;
+.score-item.team-A,
+.compact-player-card.team-A {
+    color: #2196f3;
+    /* Blue */
+    --ui-accent: #2196f3;
 }
 
-.score-item.team-b {
-    color: #64b5f6;
+.score-item.team-B,
+.compact-player-card.team-B {
+    color: #f44336;
+    /* Red */
+    --ui-accent: #f44336;
 }
 
 /* === PLAYER AVATAR & INFO (Floating) === */
@@ -145,48 +154,46 @@ html,
     transition: all 0.3s ease;
 }
 
-/* Active Turn Ring */
-.active-turn .player-avatar {
-    border-color: var(--ui-accent);
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-    transform: scale(1.05);
+/* Timer Ring Animation using Conic Gradient */
+@property --angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
 }
 
-/* Timer Ring Animation */
-.timer-ring {
+.active-turn .player-avatar::after {
+    content: '';
     position: absolute;
     inset: -6px;
+    /* Ring thickness space */
     border-radius: 50%;
-    border: 3px solid transparent;
-    border-top-color: #00e676;
-    /* Bright Green */
-    animation: spin 1s linear infinite;
-    display: none;
+    background: conic-gradient(var(--ui-accent) var(--angle), transparent 0);
+    z-index: -1;
+    /* Behind avatar */
+    animation: timer-countdown var(--timer-duration, 5s) linear forwards;
+    /* Duration is calculated in JS based on turnDeadline - Now */
 }
 
-.active-turn .timer-ring {
-    display: block;
-}
+@keyframes timer-countdown {
+    from {
+        --angle: 360deg;
+    }
 
-@keyframes spin {
-    100% {
-        transform: rotate(360deg);
+    to {
+        --angle: 0deg;
     }
 }
 
-/* Player Name */
-.player-name {
-    margin-top: 8px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: white;
-    background: rgba(0, 0, 0, 0.4);
-    padding: 4px 10px;
-    border-radius: 12px;
-    backdrop-filter: blur(4px);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-    opacity: 0.9;
+/* Fallback for regular border if no conic support or just nice stacking */
+.active-turn .player-avatar {
+    border-color: rgba(255, 215, 0, 0.3);
+    /* Dim gold base */
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+    transform: scale(1.1);
+    /* Slight pop */
 }
+
+
 
 /* Player Hand (Opponent Tokens) */
 .opponent-hand-container {
@@ -211,10 +218,25 @@ html,
     flex-direction: column;
 }
 
+/* --- TOP LOCATION --- */
+.player-side.top {
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    /* Wrapper */
+}
+
+.player-side.top .compact-player-card {
+    display: flex;
+    flex-direction: row;
+    /* Inline: Avatar -> Chips */
+    align-items: center;
+    gap: 12px;
+}
+
 .player-side.top .mini-tile-back {
     width: 10px;
     height: 28px;
-    /* Vertical Token */
 }
 
 /* --- LEFT LOCATION --- */
@@ -222,43 +244,44 @@ html,
     top: 50%;
     left: 24px;
     transform: translateY(-50%);
-    flex-direction: row;
-    /* Avatar Left, Tiles Right? Or Stacked? */
+    /* Wrapper positioning */
 }
 
-/* For pure minimalist, maybe stack layout for side players too? */
-.player-side.left .player-info-group {
-    align-items: flex-start;
-    /* Align Left */
+.player-side.left .compact-player-card {
+    display: flex;
+    flex-direction: row;
+    /* Inline: Avatar -> Chips */
+    align-items: center;
+    gap: 12px;
 }
 
 .player-side.left .opponent-hand-container {
     flex-direction: column;
-    /* Stacked tokens */
+    /* Stacked chips vertically (book stack) */
+    margin: 0;
 }
 
-.player-side.left .mini-tile-back {
-    width: 28px;
-    height: 10px;
-    /* Horizontal Token */
-}
 
 /* --- RIGHT LOCATION --- */
 .player-side.right {
     top: 50%;
     right: 24px;
     transform: translateY(-50%);
-    flex-direction: row-reverse;
-    /* Avatar Right */
+    /* Wrapper positioning */
 }
 
-.player-side.right .player-info-group {
-    align-items: flex-end;
-    /* Align Right */
+.player-side.right .compact-player-card {
+    display: flex;
+    flex-direction: row-reverse;
+    /* Inline: Avatar <- Chips */
+    align-items: center;
+    gap: 12px;
 }
 
 .player-side.right .opponent-hand-container {
     flex-direction: column;
+    /* Stacked chips vertically */
+    margin: 0;
 }
 
 .player-side.right .mini-tile-back {
@@ -273,15 +296,21 @@ html,
     left: 50%;
     transform: translateX(-50%);
     z-index: 60;
+
+    /* Inline: Avatar -> Left, Rack -> Right */
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
 }
 
+.player-me .player-info-group {
+    margin-right: 12px;
+}
+
 .player-me .player-name {
-    margin-bottom: 12px;
-    font-size: 1rem;
-    color: var(--ui-accent);
+    margin-bottom: 0;
+    margin-right: 8px;
+    /* If name existed, but it was removed. Keeping rule harmless. */
 }
 
 .my-hand-container {
@@ -293,12 +322,7 @@ html,
     backdrop-filter: blur(16px);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.05);
-    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.my-hand-container:hover {
-    transform: translateY(-8px);
-    border-color: rgba(255, 255, 255, 0.2);
+    /* No Transition on hover */
 }
 
 /* === RESPONSIVE (Simple Mobile Tweaks) === */

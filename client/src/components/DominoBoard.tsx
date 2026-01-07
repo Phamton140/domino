@@ -25,35 +25,61 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
         if (board.length === 0) return [];
 
         // 1. INFERENCE ENGINE (Structure Analysis)
-        const centerPiece = board[0];
-        let leftVal = centerPiece.piece[0];
-        let rightVal = centerPiece.piece[1];
+        // The 'board' array is ordered Head -> Tail.
+        // To stabilize the view, we pick the middle element as the "Visual Anchor".
+        const midIndex = Math.floor(board.length / 2);
+        const centerPiece = board[midIndex];
+
+        // We will build two chains radiating OUT from the center piece.
+        // Left Chain: mid-1 -> 0 (Head)
+        // Right Chain: mid+1 -> End (Tail)
 
         const leftChain: { piece: Piece, matchVal: number }[] = [];
         const rightChain: { piece: Piece, matchVal: number }[] = [];
 
-        // Helper check for valid piece data
-        const isValid = (p: Piece) => Array.isArray(p) && p.length === 2;
+        // --- Build Right Chain (Center -> Tail) ---
+        // matchVal for the first right piece is the value it shares with Center.
+        let currentMatchVal_Right = undefined;
+        // We look at the Right side of CenterPiece to define "matchVal" for the next one?
+        // Actually, we can just trace connections.
 
-        for (let i = 1; i < board.length; i++) {
+        let previousPiece = centerPiece.piece;
+
+        // Right side loop
+        for (let i = midIndex + 1; i < board.length; i++) {
             const p = board[i].piece;
-            if (!isValid(p)) continue; // Skip bad data
+            // Find which value connects to the previous piece
+            // Common value between previousPiece and p
+            // NOTE: In a valid domino chain, there IS exactly one matching value (unless duplicate double error).
+            // But we need to know WHICH end of 'previousPiece' is the exposed one.
+            // This is hard without full state tracking. 
+            // EASIER: The 'board' array is Head->Tail. 
+            // So board[i] connects to board[i-1].
+            // We just need to find the common value.
 
-            if (p[0] === leftVal || p[1] === leftVal) {
-                leftChain.push({ piece: p, matchVal: leftVal });
-                leftVal = (p[0] === leftVal) ? p[1] : p[0];
-            } else if (p[0] === rightVal || p[1] === rightVal) {
-                rightChain.push({ piece: p, matchVal: rightVal });
-                rightVal = (p[0] === rightVal) ? p[1] : p[0];
-            } else {
-                rightChain.push({ piece: p, matchVal: rightVal });
-            }
+            const matchVal = (p[0] === previousPiece[0] || p[0] === previousPiece[1]) ? p[0] : p[1];
+            // Wait, what if both match? (e.g. [1,1] connecting to [1,1]). matchVal is 1.
+
+            rightChain.push({ piece: p, matchVal: matchVal });
+            previousPiece = p;
+        }
+
+        // --- Build Left Chain (Center -> Head) ---
+        // We walk BACKWARDS from Center.
+        previousPiece = centerPiece.piece;
+
+        for (let i = midIndex - 1; i >= 0; i--) {
+            const p = board[i].piece;
+            // board[i] connects to board[i+1] (which is 'previousPiece' in this loop)
+            const matchVal = (p[0] === previousPiece[0] || p[0] === previousPiece[1]) ? p[0] : p[1];
+
+            leftChain.push({ piece: p, matchVal: matchVal });
+            previousPiece = p;
         }
 
         // 2. LAYOUT ENGINE
         const GAP = 2;
         const LIMIT_X = 500;
-        const ROW_HEIGHT = 55; // Tight stacking
 
         const results: any[] = [];
 
@@ -68,74 +94,165 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
             y: -centerH / 2,
             width: centerW,
             height: centerH,
-            isDouble: centerIsDouble
+            isDouble: centerIsDouble,
+            orientation: centerIsDouble ? "vertical" : "horizontal"
         });
 
-        // B. Chain Layout Helper
+        // B. Chain Layout Helper (State Machine for Z-Turn)
         const layoutChain = (chain: any[], initialX: number, initialY: number, initialDir: number) => {
             let curX = initialX;
             let curY = initialY;
-            let dir = initialDir;
+            let dir = initialDir; // 1 = Right, -1 = Left
+            let state = 0; // 0 = Horizontal, 1 = Vertical One, 2 = Vertical Two
+
+            // Turn Direction: Right Chain turns UP (-1), Left Chain turns DOWN (+1)
+            const verticalDir = -initialDir;
+
+            // Track the Center X of the vertical column to ensure perfect stacking
+            let verticalCenterX = 0;
 
             chain.forEach((item) => {
                 const { piece, matchVal } = item;
                 const isDouble = piece[0] === piece[1];
-                const w = isDouble ? 30 : 60;
-                const h = isDouble ? 60 : 30;
 
-                // Smart Flip Orientation
+                // Determine Dimensions
+                let w, h;
+                const isVerticalFlow = (state === 1 || state === 2);
+
+                if (isVerticalFlow) {
+                    w = isDouble ? 60 : 30; // Double is Horizontal(60) in Vertical Flow
+                    h = isDouble ? 30 : 60;
+                } else {
+                    w = isDouble ? 30 : 60; // Standard Horizontal Flow
+                    h = isDouble ? 60 : 30;
+                }
+
+                // Check Bounds / Trigger Turn if in State 0
+                if (state === 0) {
+                    let potentialFarEdgeX = (dir === 1) ? curX + GAP + w : curX - GAP - w;
+                    // Add tolerance for Doubles at the edge
+                    const hitLimit = (dir === 1 && potentialFarEdgeX > LIMIT_X) || (dir === -1 && potentialFarEdgeX < -LIMIT_X);
+
+                    if (hitLimit) {
+                        state = 1; // Start Turn
+                        // Recalculate dims for Vertical Flow since we switched state
+                        if (isDouble) { w = 60; h = 30; } else { w = 30; h = 60; }
+                    }
+                }
+
+                // Smart Flip Orientation Logic
                 let p0 = piece[0];
                 let p1 = piece[1];
                 let renderValues = piece;
 
-                if (dir === 1) {
-                    // Moving Right: Connect to Left
-                    renderValues = (p0 === matchVal) ? [p0, p1] : [p1, p0];
-                } else {
-                    // Moving Left: Connect to Right
-                    renderValues = (p1 === matchVal) ? [p0, p1] : [p1, p0];
+                // Connection Logic
+                if (state === 0) {
+                    if (dir === 1) renderValues = (p0 === matchVal) ? [p0, p1] : [p1, p0];
+                    else renderValues = (p1 === matchVal) ? [p0, p1] : [p1, p0];
+                } else if (state === 1) {
+                    if (verticalDir === 1) { // Down
+                        renderValues = (p0 === matchVal) ? [p0, p1] : [p1, p0];
+                    } else { // Up
+                        renderValues = (p1 === matchVal) ? [p0, p1] : [p1, p0];
+                    }
+                } else if (state === 2) {
+                    if (verticalDir === 1) { // Down
+                        renderValues = (p0 === matchVal) ? [p0, p1] : [p1, p0];
+                    } else { // Up
+                        renderValues = (p1 === matchVal) ? [p0, p1] : [p1, p0];
+                    }
                 }
 
-                // Turn Detection
-                // Look ahead: Where would the FAR edge be if we continued?
-                let potentialFarEdgeX = (dir === 1)
-                    ? curX + GAP + w
-                    : curX - GAP - w;
-
-                let turn = false;
-                if (dir === 1 && potentialFarEdgeX > LIMIT_X) turn = true;
-                if (dir === -1 && potentialFarEdgeX < -LIMIT_X) turn = true;
-
-                if (turn) {
-                    // FOLD LOGIC
-                    // 1. Move Down
-                    curY += ROW_HEIGHT;
-                    // 2. Reverse Direction
-                    dir *= -1;
-                    // 3. Do NOT jump X. 
-                    // The new piece will be placed relative to 'curX' using the NEW direction.
-                    // This naturally places it "inwards" (folding back).
-                }
-
-                // Place Piece
+                // POSITION CALCULATION
                 let pieceX = 0;
-                if (dir === 1) {
-                    // Growing Right
-                    pieceX = curX + GAP;
-                    curX = pieceX + w; // New Tail
-                } else {
-                    // Growing Left
-                    pieceX = curX - GAP - w; // Top-Left of piece
-                    curX = pieceX; // New Tail (Left edge)
+                let pieceY = 0;
+
+                if (state === 0) {
+                    // --- STATE 0: HORIZONTAL ---
+                    if (dir === 1) { // Moving Right
+                        pieceX = curX + GAP;
+                        curX = pieceX + w; // New Tail
+                    } else { // Moving Left
+                        pieceX = curX - GAP - w;
+                        curX = pieceX; // New Tail
+                    }
+                    pieceY = curY - (h / 2);
+
+                } else if (state === 1) {
+                    // --- STATE 1: FIRST VERTICAL ---
+                    if (dir === 1) {
+                        pieceX = curX + GAP;
+                        pieceY = curY - (h / 2);
+                    } else {
+                        pieceX = curX - GAP - w;
+                        pieceY = curY - (h / 2);
+                    }
+
+                    // ALIGNMENT FIX (15px Offset)
+                    if (!isDouble) {
+                        if (verticalDir === 1) pieceY += 15; // Shift Down
+                        else pieceY -= 15; // Shift Up
+                    }
+
+                    // Store Center X for next piece to stack correctly
+                    verticalCenterX = pieceX + (w / 2);
+
+                    // Update Pointers for V2
+                    if (verticalDir === 1) { // Down
+                        curY = pieceY + h; // Bottom Edge
+                    } else { // Up
+                        curY = pieceY; // Top Edge
+                    }
+                    // curX is not used for V2 X-pos anymore, verticalCenterX is.
+                    state = 2;
+
+                } else if (state === 2) {
+                    // --- STATE 2: SECOND VERTICAL ---
+                    // Center-Align with V1 using verticalCenterX
+                    pieceX = verticalCenterX - (w / 2);
+
+                    if (verticalDir === 1) { // Down
+                        pieceY = curY + GAP;
+                        curY = pieceY + h;
+                    } else { // Up
+                        pieceY = curY - GAP - h;
+                        curY = pieceY;
+                    }
+
+                    // Prepare for Horizontal Return
+                    state = 0;
+                    dir *= -1; // Reverse X direction
+
+                    // Reset curY for the new horizontal row (Step Logic)
+                    if (verticalDir === 1) curY = pieceY + h + 15;
+                    else curY = pieceY - 15;
+
+                    // Reset curX for H-piece (Start from the "Side" of the vertical stack)
+                    // If going Right, start from Right Edge of Stack.
+                    // If going Left, start from Left Edge of Stack.
+                    // Stack Center is verticalCenterX. 
+                    if (dir === 1) { // Now moving Right
+                        curX = verticalCenterX + (w / 2); // Right Edge? 
+                        // No, w is current piece width. 
+                        // We want to emerge from the stack. The horizontal piece starts "outside".
+                        // Wait, if V2 was wider (Double), we start from ITS edge.
+                        curX = pieceX + w;
+                    } else { // Now moving Left
+                        curX = pieceX;
+                    }
                 }
 
+                // Push Result
                 results.push({
                     piece: renderValues,
                     x: pieceX,
-                    y: curY - (h / 2),
+                    y: pieceY,
                     width: w,
                     height: h,
-                    isDouble
+                    isDouble,
+                    // Determine explicit orientation for renderer
+                    // w=30 -> Vertical. w=60 -> Horizontal.
+                    orientation: (w === 30) ? "vertical" : "horizontal"
                 });
             });
         };
@@ -146,70 +263,73 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
         return results;
     }, [board]);
 
-    // AUTO-ZOOM ENGINE
-    const layoutInfo = useMemo(() => {
-        if (positionedPieces.length === 0) return null;
+    // 3. MANUAL BOARD NAVIGATION (Pan & Zoom Lock)
+    // User requested "No Resize" and "No Jumps". 
+    // We lock scale and position, enabling Drag-to-Pan.
+    const [viewState, setViewState] = useState({ x: 0, y: 0, scale: 0.85, isDragging: false, startX: 0, startY: 0 });
+    const [initialized, setInitialized] = useState(false);
 
-        // 1. Calculate Bounding Box of all pieces
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        positionedPieces.forEach(p => {
-            if (p.x < minX) minX = p.x;
-            if (p.x + p.width > maxX) maxX = p.x + p.width;
-            if (p.y < minY) minY = p.y;
-            if (p.y + p.height > maxY) maxY = p.y + p.height;
-        });
+    // Initial Center Calculation (Run Only Once)
+    useEffect(() => {
+        if (board.length > 0 && !initialized && dim.w > 0) {
+            // Start centered but slightly higher to avoid bottom player hand overlap
+            setViewState(prev => ({
+                ...prev,
+                x: dim.w / 2,
+                y: dim.h * 0.40
+            }));
+            setInitialized(true);
+        }
+    }, [dim, board.length, initialized]);
 
-        const bbWidth = maxX - minX;
-        const bbHeight = maxY - minY;
-        const bbCenterX = minX + bbWidth / 2;
-        const bbCenterY = minY + bbHeight / 2;
+    // Drag Handlers
+    const handleMouseDown = (e: React.MouseEvent) => {
+        setViewState(prev => ({ ...prev, isDragging: true, startX: e.clientX - prev.x, startY: e.clientY - prev.y }));
+    };
 
-        // 2. Calculate Scale to fit in 'dim' (Container)
-        // asymmetric margins to account for UI
-        const TOP_MARGIN = 100;
-        const BOTTOM_MARGIN = 220; // Player Hand area
-        const SIDE_MARGIN = 80;    // Side players
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!viewState.isDragging) return;
+        setViewState(prev => ({
+            ...prev,
+            x: e.clientX - prev.startX,
+            y: e.clientY - prev.startY
+        }));
+    };
 
-        // Ensure avail dims are positive
-        const availW = Math.max(100, dim.w - SIDE_MARGIN * 2);
-        const availH = Math.max(100, dim.h - (TOP_MARGIN + BOTTOM_MARGIN));
+    const handleMouseUp = () => {
+        setViewState(prev => ({ ...prev, isDragging: false }));
+    };
 
-        // Safe division check
-        const scaleX = bbWidth > 0 ? availW / bbWidth : 1;
-        const scaleY = bbHeight > 0 ? availH / bbHeight : 1;
+    const handleMouseLeave = () => {
+        if (viewState.isDragging) setViewState(prev => ({ ...prev, isDragging: false }));
+    };
 
-        // Clamp scale to avoid huge pieces on start or tiny ones
-        // max 1.5 (150%), min 0.1
-        let scale = Math.min(scaleX, scaleY);
-        scale = Math.min(Math.max(scale, 0.35), 1.2);
-
-        // 3. Center Logic
-        // We want the visual center of the BB (bbCenterX, bbCenterY) to be at the center of the container (dim.w/2, dim.h/2)
-        // CSS Transform: translate(ScreenCenter) scale(s) translate(-BBCenter)
-
-        // Bias center upwards (42% height) to avoid bottom heavy UI
-        const screenCX = dim.w > 0 ? dim.w / 2 : 400;
-        const screenCY = dim.h > 0 ? (dim.h * 0.42) : 300;
-
-        return {
-            transform: `translate(${screenCX}px, ${screenCY}px) scale(${scale}) translate(${-bbCenterX}px, ${-bbCenterY}px)`,
-            debug: { scale, bbWidth, bbHeight, pieces: positionedPieces.length, dimW: dim.w, dimH: dim.h }
-        };
-
-    }, [positionedPieces, dim]);
+    // Wheel Zoom (Optional, but good for manual control)
+    const handleWheel = (e: React.WheelEvent) => {
+        // e.preventDefault(); // React synthetic events can't prevent default passive wheel
+        const delta = -e.deltaY * 0.001;
+        setViewState(prev => ({
+            ...prev,
+            scale: Math.min(Math.max(prev.scale + delta, 0.4), 2.0)
+        }));
+    };
 
     if (board.length === 0) return <div className="domino-board empty">Esperando salida...</div>;
 
     return (
-        <div className="domino-board" ref={containerRef}>
-            {/* DEBUG OVERLAY - Remove after verification */}
-            {/* <div style={{ position: 'absolute', top: 0, right: 0, color: 'lime', background: 'rgba(0,0,0,0.7)', padding: '5px', fontSize: '10px', zIndex: 9999 }}>
-                Pieces: {layoutInfo?.debug.pieces} <br/>
-                Scale: {layoutInfo?.debug.scale.toFixed(2)} <br/>
-                Dim: {layoutInfo?.debug.dimW}x{layoutInfo?.debug.dimH}
-            </div> */}
-
-            <div className="pieces-layer" style={{ transform: layoutInfo?.transform }}>
+        <div
+            className="domino-board"
+            ref={containerRef}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
+            onWheel={handleWheel}
+            style={{ cursor: viewState.isDragging ? 'grabbing' : 'grab' }}
+        >
+            <div className="pieces-layer" style={{
+                transform: `translate(${viewState.x}px, ${viewState.y}px) scale(${viewState.scale})`
+            }}>
                 {positionedPieces.map((item, i) => (
                     <div
                         key={i}
@@ -222,7 +342,7 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                     >
                         <DominoPiece
                             values={item.piece}
-                            orientation={item.isDouble ? "vertical" : "horizontal"}
+                            orientation={item.orientation}
                             size="small"
                             disabled
                         />

@@ -112,8 +112,8 @@ export class GameEngine {
             this.timer = null;
         }
 
-        // Fixed duration: 15s rigid limit
-        const duration = 15000;
+        // Fixed duration: 5s rigid limit (Testing)
+        const duration = 5000;
         this.gameState.turnDeadline = Date.now() + duration;
 
         // Store the current player ID to verify in timeout

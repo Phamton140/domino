@@ -258,14 +258,14 @@ export const setupSocketHandlers = (io: Server) => {
 
             console.log(`📤 Sent ready_status: ${room.readyPlayers.size}/${room.players.length}`);
 
-            // If this is the first player to ready, start 15-second timer
+            // If this is the first player to ready, start 10-second timer (Testing Speed)
             if (room.readyPlayers.size === 1) {
-                console.log(`⏱️ Starting 15-second ready timer for room ${room.id}`);
+                console.log(`⏱️ Starting 10-second ready timer for room ${room.id}`);
 
                 room.nextHandTimer = setTimeout(() => {
                     console.log(`⏰ Ready timer expired, starting next hand automatically`);
                     startNextHand(room, io, roomManager);
-                }, 15000);
+                }, 10000);
             }
 
             // If ALL players are ready, start immediately
