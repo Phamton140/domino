@@ -232,10 +232,6 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
             )}
 
             <div className="info-bar">
-                <div className="room-code-display">
-                    <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Sala: {roomId}</span>
-                </div>
-
                 {gameState.players.length === 4 && (
                     <div className="scores" style={{
                         background: 'rgba(0,0,0,0.4)',
@@ -243,12 +239,17 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
                         borderRadius: '8px',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '2px'
+                        gap: '2px',
+                        marginBottom: '4px' // Add spacing below scores
                     }}>
                         <div className="score-item team-A">Team A: {gameState.teamScores?.A || 0}</div>
                         <div className="score-item team-B">Team B: {gameState.teamScores?.B || 0}</div>
                     </div>
                 )}
+
+                <div className="room-code-display">
+                    <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Sala: {roomId}</span>
+                </div>
             </div>
 
             {/* Absolute Top Player */}

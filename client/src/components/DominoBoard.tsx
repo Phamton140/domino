@@ -308,15 +308,8 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
         if (viewState.isDragging) setViewState(prev => ({ ...prev, isDragging: false }));
     };
 
-    // Wheel Zoom (Optional, but good for manual control)
-    const handleWheel = (e: React.WheelEvent) => {
-        // e.preventDefault(); // React synthetic events can't prevent default passive wheel
-        const delta = -e.deltaY * 0.001;
-        setViewState(prev => ({
-            ...prev,
-            scale: Math.min(Math.max(prev.scale + delta, 0.4), 2.0)
-        }));
-    };
+    // Wheel Zoom DISABLED
+    // const handleWheel = ...
 
     if (board.length === 0) return <div className="domino-board empty">Esperando salida...</div>;
 
@@ -328,7 +321,7 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
-            onWheel={handleWheel}
+            // onWheel={handleWheel}
             style={{ cursor: viewState.isDragging ? 'grabbing' : 'grab' }}
         >
             <div className="pieces-layer" style={{
@@ -347,7 +340,7 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                         <DominoPiece
                             values={item.piece}
                             orientation={item.orientation}
-                            size="small"
+                            size="medium"
                             disabled
                         />
                     </div>
