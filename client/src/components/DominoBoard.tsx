@@ -80,6 +80,7 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
         // 2. LAYOUT ENGINE
         const GAP = 2;
         const LIMIT_X = 500;
+        const MAX_HORIZONTAL_PIECES = 6; // Fold after 6 pieces per side (approx 12-13 total width)
 
         const results: any[] = [];
 
@@ -111,7 +112,7 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
             // Track the Center X of the vertical column to ensure perfect stacking
             let verticalCenterX = 0;
 
-            chain.forEach((item) => {
+            chain.forEach((item, index) => {
                 const { piece, matchVal } = item;
                 const isDouble = piece[0] === piece[1];
 
@@ -133,7 +134,8 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                     // Add tolerance for Doubles at the edge
                     const hitLimit = (dir === 1 && potentialFarEdgeX > LIMIT_X) || (dir === -1 && potentialFarEdgeX < -LIMIT_X);
 
-                    if (hitLimit) {
+                    // Trigger Turn if Hit Pixel Limit OR Hit Piece Count Limit
+                    if (hitLimit || index >= MAX_HORIZONTAL_PIECES) {
                         state = 1; // Start Turn
                         // Recalculate dims for Vertical Flow since we switched state
                         if (isDouble) { w = 60; h = 30; } else { w = 30; h = 60; }
@@ -266,17 +268,19 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
     // 3. MANUAL BOARD NAVIGATION (Pan & Zoom Lock)
     // User requested "No Resize" and "No Jumps". 
     // We lock scale and position, enabling Drag-to-Pan.
-    const [viewState, setViewState] = useState({ x: 0, y: 0, scale: 0.85, isDragging: false, startX: 0, startY: 0 });
+    // SCALE FIX: Set to 1.0 to match Hand Piece Size exactly.
+    const [viewState, setViewState] = useState({ x: 0, y: 0, scale: 1.0, isDragging: false, startX: 0, startY: 0 });
     const [initialized, setInitialized] = useState(false);
 
     // Initial Center Calculation (Run Only Once)
     useEffect(() => {
         if (board.length > 0 && !initialized && dim.w > 0) {
-            // Start centered but slightly higher to avoid bottom player hand overlap
+            // Start centered perfectly on screen as requested
             setViewState(prev => ({
                 ...prev,
                 x: dim.w / 2,
-                y: dim.h * 0.40
+                y: dim.h * 0.45, // Optical Center (slightly higher to accommodate Player Hand)
+                scale: 1.0 // Ensure forced 1:1 scale on init
             }));
             setInitialized(true);
         }
