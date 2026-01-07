@@ -235,33 +235,38 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
 
         return (
             <div className={`compact-player-card team-${player.team} ${isActive ? 'active' : ''}`}>
-                <div className="avatar-wrapper">
-                    {isActive && (
-                        <svg className="timer-ring" width="60" height="60">
-                            <circle
-                                className="timer-ring-bg"
-                                cx="30" cy="30" r="28"
-                            />
-                            <circle
-                                className="timer-ring-progress"
-                                cx="30" cy="30" r="28"
-                                strokeDasharray={dashArray}
-                                strokeDashoffset={dashOffset}
-                            />
-                        </svg>
-                    )}
-                    <div className="player-avatar">
-                        {player.name.substring(0, 2).toUpperCase()}
+                <div className="player-info-group">
+                    <div className="avatar-wrapper">
+                        {isActive && (
+                            <svg className="timer-ring" width="60" height="60">
+                                <circle
+                                    className="timer-ring-bg"
+                                    cx="30" cy="30" r="28"
+                                />
+                                <circle
+                                    className="timer-ring-progress"
+                                    cx="30" cy="30" r="28"
+                                    strokeDasharray={dashArray}
+                                    strokeDashoffset={dashOffset}
+                                />
+                            </svg>
+                        )}
+                        <div className="player-avatar">
+                            {player.name.substring(0, 2).toUpperCase()}
+                        </div>
                     </div>
-                </div>
 
-                <div className="player-name">
-                    {player.name}
+                    <div className="player-name">
+                        {player.name}
+                    </div>
                 </div>
 
                 <div className="opponent-hand-container">
                     {Array.from({ length: player.hand.length }).map((_, i) => (
-                        <div key={i} className="mini-tile-back"></div>
+                        <div
+                            key={i}
+                            className={`domino-piece ${pos === 1 || pos === 3 ? 'horizontal' : 'vertical'} opponent-hidden`}
+                        ></div>
                     ))}
                 </div>
             </div>
@@ -279,72 +284,75 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
 
             <div className="info-bar">
                 <div className="room-code-display">
-                    <span>Sala: {roomId}</span>
-
+                    <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Sala: {roomId}</span>
                 </div>
 
                 {gameState.players.length === 4 && (
-                    <div className="scores">
-                        <span style={{ color: '#ff4444' }}>Team A: {gameState.teamScores?.A || 0}</span>
-                        <span style={{ margin: '0 10px' }}>vs</span>
-                        <span style={{ color: '#4444ff' }}>Team B: {gameState.teamScores?.B || 0}</span>
+                    <div className="scores" style={{
+                        background: 'rgba(0,0,0,0.4)',
+                        padding: '5px 10px',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '2px'
+                    }}>
+                        <div style={{ color: '#ff6666', fontWeight: 'bold' }}>Team A: {gameState.teamScores?.A || 0}</div>
+                        <div style={{ color: '#6666ff', fontWeight: 'bold' }}>Team B: {gameState.teamScores?.B || 0}</div>
                     </div>
                 )}
-
-                <div className="turn-indicator">
-                    {isMyTurn
-                        ? <span className="timer">Tu Turno! ({timeLeft}s)</span>
-                        : <span>Turno de: {gameState.players.find(p => p.id === gameState.currentTurnPlayerId)?.name}</span>
-                    }
-                </div>
             </div>
 
-            <div className="player-side left">
-                {renderPlayerCard(3)}
-            </div>
-
+            {/* Absolute Top Player */}
             <div className="player-side top">
                 {renderPlayerCard(2)}
+            </div>
+
+            {/* Grid Side Players */}
+            <div className="player-side left">
+                {renderPlayerCard(3)}
             </div>
 
             <div className="player-side right">
                 {renderPlayerCard(1)}
             </div>
 
+            {/* Center Board (Canvas) */}
             <div className="board-area">
                 <DominoBoard board={gameState.board} />
             </div>
 
-            <div className="my-hand-area">
-                <div className="controls">
-                    {/* My Player Info (Avatar + Name) */}
-                    {myPlayer && (
-                        <div className={`my-player-info team-${myPlayer.team}`}>
-                            <div className="avatar-wrapper">
-                                {isMyTurn && (
-                                    <svg className="timer-ring" width="50" height="50">
-                                        <circle className="timer-ring-bg" cx="25" cy="25" r="23" />
-                                        <circle
-                                            className="timer-ring-progress"
-                                            cx="25" cy="25" r="23"
-                                            strokeDasharray={2 * Math.PI * 23}
-                                            strokeDashoffset={isMyTurn ? (2 * Math.PI * 23) * (1 - (timeLeft / 20)) : 2 * Math.PI * 23}
-                                        />
-                                    </svg>
-                                )}
-                                <div className="player-avatar">
-                                    {myPlayer.name.substring(0, 2).toUpperCase()}
-                                </div>
-                            </div>
-                            <div className="player-details">
-                                <span className="name">{myPlayer.name}</span>
-                                <span className="score" style={{ fontSize: '0.8rem', opacity: 0.8 }}>Team {myPlayer.team}</span>
+            {/* Bottom Player (Me) */}
+            <div className="player-me">
+                {/* My Player Info (Avatar + Name) */}
+                {myPlayer && (
+                    <div className="player-info-group">
+                        <div className="avatar-wrapper">
+                            {/* Timer Ring */}
+                            {isMyTurn && (
+                                <svg className="timer-ring" width="56" height="56">
+                                    <circle className="timer-ring-bg" cx="28" cy="28" r="26" stroke="transparent" />
+                                    <circle
+                                        className="timer-ring-progress"
+                                        cx="28" cy="28" r="26"
+                                        strokeDasharray={2 * Math.PI * 26}
+                                        strokeDashoffset={isMyTurn ? (2 * Math.PI * 26) * (1 - (timeLeft / 20)) : 2 * Math.PI * 26}
+                                        stroke="lime"
+                                        fill="none"
+                                        strokeWidth="3"
+                                    />
+                                </svg>
+                            )}
+                            <div className="player-avatar">
+                                {myPlayer.name.substring(0, 2).toUpperCase()}
                             </div>
                         </div>
-                    )}
-                </div>
+                        <div className="player-name">
+                            {myPlayer.name}
+                        </div>
+                    </div>
+                )}
 
-                <div className="my-hand">
+                <div className="my-hand-container">
                     {myPlayer?.hand.map((piece, i) => {
                         const head = gameState.board[0]?.piece[0];
                         const tail = gameState.board[gameState.board.length - 1]?.piece[1];

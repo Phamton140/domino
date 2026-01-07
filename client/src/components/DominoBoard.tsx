@@ -1,113 +1,233 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { DominoPiece } from './DominoPiece';
 import type { Piece } from '../types';
 import './DominoBoard.css';
 
-interface BoardItem {
-    piece: Piece;
-}
-
 interface Props {
-    board: BoardItem[];
+    board: { piece: Piece }[];
 }
 
 export const DominoBoard: React.FC<Props> = ({ board }) => {
-    const scrollContainerRef = useRef<HTMLDivElement>(null);
-    const isDragging = useRef(false);
-    const startX = useRef(0);
-    const scrollLeft = useRef(0);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [dim, setDim] = useState({ w: 1200, h: 800 });
 
-    // Auto-scroll to end when board changes
     useEffect(() => {
-        if (scrollContainerRef.current) {
-            const container = scrollContainerRef.current;
-            // Smoothly scroll to the very end on new piece (or centered if preferred)
-            container.scrollTo({
-                left: container.scrollWidth,
-                behavior: 'smooth'
-            });
+        if (!containerRef.current) return;
+        const observer = new ResizeObserver(entries => {
+            const { width, height } = entries[0].contentRect;
+            setDim({ w: width, h: height });
+        });
+        observer.observe(containerRef.current);
+        return () => observer.disconnect();
+    }, []);
+
+    const positionedPieces = useMemo(() => {
+        if (board.length === 0) return [];
+
+        // 1. INFERENCE ENGINE (Structure Analysis)
+        const centerPiece = board[0];
+        let leftVal = centerPiece.piece[0];
+        let rightVal = centerPiece.piece[1];
+
+        const leftChain: { piece: Piece, matchVal: number }[] = [];
+        const rightChain: { piece: Piece, matchVal: number }[] = [];
+
+        // Helper check for valid piece data
+        const isValid = (p: Piece) => Array.isArray(p) && p.length === 2;
+
+        for (let i = 1; i < board.length; i++) {
+            const p = board[i].piece;
+            if (!isValid(p)) continue; // Skip bad data
+
+            if (p[0] === leftVal || p[1] === leftVal) {
+                leftChain.push({ piece: p, matchVal: leftVal });
+                leftVal = (p[0] === leftVal) ? p[1] : p[0];
+            } else if (p[0] === rightVal || p[1] === rightVal) {
+                rightChain.push({ piece: p, matchVal: rightVal });
+                rightVal = (p[0] === rightVal) ? p[1] : p[0];
+            } else {
+                rightChain.push({ piece: p, matchVal: rightVal });
+            }
         }
-    }, [board.length]); // Only trigger on board length change
 
-    // Mouse Events
-    const handleMouseDown = (e: React.MouseEvent) => {
-        if (!scrollContainerRef.current) return;
-        isDragging.current = true;
-        startX.current = e.pageX - scrollContainerRef.current.offsetLeft;
-        scrollLeft.current = scrollContainerRef.current.scrollLeft;
-    };
+        // 2. LAYOUT ENGINE
+        const GAP = 2;
+        const LIMIT_X = 500;
+        const ROW_HEIGHT = 55; // Tight stacking
 
-    const handleMouseLeave = () => {
-        isDragging.current = false;
-    };
+        const results: any[] = [];
 
-    const handleMouseUp = () => {
-        isDragging.current = false;
-    };
+        // A. Center Piece
+        const centerIsDouble = centerPiece.piece[0] === centerPiece.piece[1];
+        const centerW = centerIsDouble ? 30 : 60;
+        const centerH = centerIsDouble ? 60 : 30;
 
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (!isDragging.current || !scrollContainerRef.current) return;
-        e.preventDefault();
-        const x = e.pageX - scrollContainerRef.current.offsetLeft;
-        const walk = (x - startX.current) * 1.5; // Scroll-fast multiplier
-        scrollContainerRef.current.scrollLeft = scrollLeft.current - walk;
-    };
+        results.push({
+            piece: centerPiece.piece,
+            x: -centerW / 2,
+            y: -centerH / 2,
+            width: centerW,
+            height: centerH,
+            isDouble: centerIsDouble
+        });
 
-    // Touch Events (Mobile)
-    const handleTouchStart = (e: React.TouchEvent) => {
-        if (!scrollContainerRef.current) return;
-        isDragging.current = true;
-        startX.current = e.touches[0].pageX - scrollContainerRef.current.offsetLeft;
-        scrollLeft.current = scrollContainerRef.current.scrollLeft;
-    };
+        // B. Chain Layout Helper
+        const layoutChain = (chain: any[], initialX: number, initialY: number, initialDir: number) => {
+            let curX = initialX;
+            let curY = initialY;
+            let dir = initialDir;
 
-    const handleTouchMove = (e: React.TouchEvent) => {
-        if (!isDragging.current || !scrollContainerRef.current) return;
-        // Don't prevent default blindly? It might stop other gestures. 
-        // But for panning we probably want to own the gesture.
-        const x = e.touches[0].pageX - scrollContainerRef.current.offsetLeft;
-        const walk = (x - startX.current) * 1.5;
-        scrollContainerRef.current.scrollLeft = scrollLeft.current - walk;
-    };
+            chain.forEach((item) => {
+                const { piece, matchVal } = item;
+                const isDouble = piece[0] === piece[1];
+                const w = isDouble ? 30 : 60;
+                const h = isDouble ? 60 : 30;
 
-    const handleTouchEnd = () => {
-        isDragging.current = false;
-    };
+                // Smart Flip Orientation
+                let p0 = piece[0];
+                let p1 = piece[1];
+                let renderValues = piece;
 
-    if (board.length === 0) {
-        return (
-            <div className="domino-board empty">
-                <div className="empty-message">Esperando jugada inicial...</div>
-            </div>
-        );
-    }
+                if (dir === 1) {
+                    // Moving Right: Connect to Left
+                    renderValues = (p0 === matchVal) ? [p0, p1] : [p1, p0];
+                } else {
+                    // Moving Left: Connect to Right
+                    renderValues = (p1 === matchVal) ? [p0, p1] : [p1, p0];
+                }
+
+                // Turn Detection
+                // Look ahead: Where would the FAR edge be if we continued?
+                let potentialFarEdgeX = (dir === 1)
+                    ? curX + GAP + w
+                    : curX - GAP - w;
+
+                let turn = false;
+                if (dir === 1 && potentialFarEdgeX > LIMIT_X) turn = true;
+                if (dir === -1 && potentialFarEdgeX < -LIMIT_X) turn = true;
+
+                if (turn) {
+                    // FOLD LOGIC
+                    // 1. Move Down
+                    curY += ROW_HEIGHT;
+                    // 2. Reverse Direction
+                    dir *= -1;
+                    // 3. Do NOT jump X. 
+                    // The new piece will be placed relative to 'curX' using the NEW direction.
+                    // This naturally places it "inwards" (folding back).
+                }
+
+                // Place Piece
+                let pieceX = 0;
+                if (dir === 1) {
+                    // Growing Right
+                    pieceX = curX + GAP;
+                    curX = pieceX + w; // New Tail
+                } else {
+                    // Growing Left
+                    pieceX = curX - GAP - w; // Top-Left of piece
+                    curX = pieceX; // New Tail (Left edge)
+                }
+
+                results.push({
+                    piece: renderValues,
+                    x: pieceX,
+                    y: curY - (h / 2),
+                    width: w,
+                    height: h,
+                    isDouble
+                });
+            });
+        };
+
+        layoutChain(rightChain, centerW / 2, 0, 1);
+        layoutChain(leftChain, -centerW / 2, 0, -1);
+
+        return results;
+    }, [board]);
+
+    // AUTO-ZOOM ENGINE
+    const layoutInfo = useMemo(() => {
+        if (positionedPieces.length === 0) return null;
+
+        // 1. Calculate Bounding Box of all pieces
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        positionedPieces.forEach(p => {
+            if (p.x < minX) minX = p.x;
+            if (p.x + p.width > maxX) maxX = p.x + p.width;
+            if (p.y < minY) minY = p.y;
+            if (p.y + p.height > maxY) maxY = p.y + p.height;
+        });
+
+        const bbWidth = maxX - minX;
+        const bbHeight = maxY - minY;
+        const bbCenterX = minX + bbWidth / 2;
+        const bbCenterY = minY + bbHeight / 2;
+
+        // 2. Calculate Scale to fit in 'dim' (Container)
+        // asymmetric margins to account for UI
+        const TOP_MARGIN = 100;
+        const BOTTOM_MARGIN = 220; // Player Hand area
+        const SIDE_MARGIN = 80;    // Side players
+
+        // Ensure avail dims are positive
+        const availW = Math.max(100, dim.w - SIDE_MARGIN * 2);
+        const availH = Math.max(100, dim.h - (TOP_MARGIN + BOTTOM_MARGIN));
+
+        // Safe division check
+        const scaleX = bbWidth > 0 ? availW / bbWidth : 1;
+        const scaleY = bbHeight > 0 ? availH / bbHeight : 1;
+
+        // Clamp scale to avoid huge pieces on start or tiny ones
+        // max 1.5 (150%), min 0.1
+        let scale = Math.min(scaleX, scaleY);
+        scale = Math.min(Math.max(scale, 0.35), 1.2);
+
+        // 3. Center Logic
+        // We want the visual center of the BB (bbCenterX, bbCenterY) to be at the center of the container (dim.w/2, dim.h/2)
+        // CSS Transform: translate(ScreenCenter) scale(s) translate(-BBCenter)
+
+        // Bias center upwards (42% height) to avoid bottom heavy UI
+        const screenCX = dim.w > 0 ? dim.w / 2 : 400;
+        const screenCY = dim.h > 0 ? (dim.h * 0.42) : 300;
+
+        return {
+            transform: `translate(${screenCX}px, ${screenCY}px) scale(${scale}) translate(${-bbCenterX}px, ${-bbCenterY}px)`,
+            debug: { scale, bbWidth, bbHeight, pieces: positionedPieces.length, dimW: dim.w, dimH: dim.h }
+        };
+
+    }, [positionedPieces, dim]);
+
+    if (board.length === 0) return <div className="domino-board empty">Esperando salida...</div>;
 
     return (
-        <div
-            className="domino-board"
-            ref={scrollContainerRef}
-            onMouseDown={handleMouseDown}
-            onMouseLeave={handleMouseLeave}
-            onMouseUp={handleMouseUp}
-            onMouseMove={handleMouseMove}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-        >
-            <div className="pieces-container">
-                {board.map((item, i) => {
-                    const isDouble = item.piece[0] === item.piece[1];
-                    return (
+        <div className="domino-board" ref={containerRef}>
+            {/* DEBUG OVERLAY - Remove after verification */}
+            {/* <div style={{ position: 'absolute', top: 0, right: 0, color: 'lime', background: 'rgba(0,0,0,0.7)', padding: '5px', fontSize: '10px', zIndex: 9999 }}>
+                Pieces: {layoutInfo?.debug.pieces} <br/>
+                Scale: {layoutInfo?.debug.scale.toFixed(2)} <br/>
+                Dim: {layoutInfo?.debug.dimW}x{layoutInfo?.debug.dimH}
+            </div> */}
+
+            <div className="pieces-layer" style={{ transform: layoutInfo?.transform }}>
+                {positionedPieces.map((item, i) => (
+                    <div
+                        key={i}
+                        className="piece-wrapper"
+                        style={{
+                            transform: `translate(${item.x}px, ${item.y}px)`,
+                            width: item.width,
+                            height: item.height
+                        }}
+                    >
                         <DominoPiece
-                            key={i}
                             values={item.piece}
-                            orientation={isDouble ? "vertical" : "horizontal"}
+                            orientation={item.isDouble ? "vertical" : "horizontal"}
                             size="small"
                             disabled
-                            className="board-piece"
                         />
-                    );
-                })}
+                    </div>
+                ))}
             </div>
         </div>
     );

@@ -1,262 +1,148 @@
+/* === PREMIUM MINIMALIST DOMINO PIECE === */
 .domino-piece {
-    background-color: #fdfdfd;
-    border-radius: 8px;
-    box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
-    /* slight bevel effect */
-    border: 1px solid #ccc;
-    border-right: 2px solid #bbb;
-    border-bottom: 2px solid #bbb;
-
+    background-color: #f5f5f7;
+    /* Off-white, easier on eyes */
+    border-radius: 6px;
+    box-shadow:
+        0 2px 5px rgba(0, 0, 0, 0.2),
+        /* Soft Drop Shadow */
+        inset 0 1px 0 rgba(255, 255, 255, 0.8),
+        /* Highlight */
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+    /* Lowlight */
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    box-sizing: border-box;
     padding: 4px;
+    box-sizing: border-box;
     cursor: pointer;
-
-    transition: transform 0.1s, box-shadow 0.1s;
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
+    overflow: hidden;
 }
 
-.domino-piece:hover:not(.disabled) {
-    transform: translateY(-2px);
-    box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
-}
-
-.domino-piece.disabled {
-    opacity: 0.8;
-    cursor: not-allowed;
-    background-color: #e0e0e0;
-}
-
-/* Orientation and Sizes */
-
-/* Vertical (Standard) */
+/* Orientation: Vertical (Default) */
 .domino-piece.vertical {
-    width: 44px;
-    height: 88px;
-    flex-direction: column;
+    width: 30px;
+    height: 60px;
 }
 
-.domino-piece.vertical .line {
-    width: 100%;
-    height: 2px;
-    background-color: #333;
-    margin: 4px 0;
-}
-
-/* Horizontal (Rotated) */
+/* Orientation: Horizontal */
 .domino-piece.horizontal {
-    width: 88px;
-    height: 44px;
+    width: 60px;
+    height: 30px;
     flex-direction: row;
 }
 
+/* Divider Line (Subtle) */
+.domino-piece.vertical .line {
+    width: 100%;
+    height: 1px;
+    background-color: rgba(0, 0, 0, 0.1);
+    margin: 2px 0;
+}
+
 .domino-piece.horizontal .line {
-    width: 2px;
+    width: 1px;
     height: 100%;
-    background-color: #333;
-    margin: 0 4px;
+    background-color: rgba(0, 0, 0, 0.1);
+    margin: 0 2px;
+}
+
+/* Dots Container */
+.domino-piece .half {
+    flex: 1;
+    display: grid;
+    place-items: center;
+    position: relative;
+}
+
+/* Dot Grid System (3x3 Matrix Logic) */
+.val-0 {
+    grid-template-areas: ". . ." ". . ." ". . .";
+}
+
+.val-1 {
+    grid-template-areas: ". . ." ". a ." ". . .";
+}
+
+.val-2 {
+    grid-template-areas: "a . ." ". . ." ". . b";
+}
+
+.val-3 {
+    grid-template-areas: "a . ." ". b ." ". . c";
+}
+
+.val-4 {
+    grid-template-areas: "a . b" ". . ." "c . d";
+}
+
+.val-5 {
+    grid-template-areas: "a . b" ". c ." "d . e";
+}
+
+.val-6 {
+    grid-template-areas: "a . b" "c . d" "e . f";
+}
+
+/* Actual Dot Styling */
+.domino-piece .dot {
+    width: 4px;
+    height: 4px;
+    background-color: #1c1c1e;
+    /* Almost Black */
+    border-radius: 50%;
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.3);
+    /* Inner depth */
+}
+
+/* Piece Interaction */
+.domino-piece:hover:not(.disabled) {
+    transform: scale(1.05) translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
+    z-index: 10;
+}
+
+/* Selected State */
+.domino-piece.selected {
+    outline: 2px solid #007AFF;
+    /* Apple Blue */
+    outline-offset: 2px;
+}
+
+/* Disabled State */
+.domino-piece.disabled {
+    cursor: default;
+    /* No visual dimming for board pieces, they should look crisp */
 }
 
 /* Sizes */
-.domino-piece.small {
-    width: 30px;
-    height: 60px;
-    border-radius: 4px;
-    padding: 2px;
+/* .domino-piece.small is default board usage, styles inherited or inline */
+
+/* .domino-piece.medium is default hand usage */
+
+/* Draggable / Hand Specifics */
+.my-hand-container .domino-piece {
+    /* Inherit base size (30x60) to match the table */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+/* FIX: Assign dots to grid areas */
+.domino-piece .half > span:nth-child(1) { grid-area: a; }
+.domino-piece .half > span:nth-child(2) { grid-area: b; }
+.domino-piece .half > span:nth-child(3) { grid-area: c; }
+.domino-piece .half > span:nth-child(4) { grid-area: d; }
+.domino-piece .half > span:nth-child(5) { grid-area: e; }
+.domino-piece .half > span:nth-child(6) { grid-area: f; }
+
+/* OPPONENT HANDS (Face Down) */
+.domino-piece.opponent-hidden {
+    background: #e0e0e0; /* Simple back color */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    cursor: default;
+}
+.domino-piece.opponent-hidden .line,
+.domino-piece.opponent-hidden .half {
+    display: none; /* Hide dots and line */
 }
 
-.domino-piece.small.horizontal {
-    width: 60px;
-    height: 30px;
-}
-
-.domino-piece.small .dot {
-    width: 4px;
-    height: 4px;
-}
-
-.domino-piece.large {
-    width: 60px;
-    height: 120px;
-    border-radius: 10px;
-}
-
-.domino-piece.large.horizontal {
-    width: 120px;
-    height: 60px;
-}
-
-.domino-piece.large .dot {
-    width: 10px;
-    height: 10px;
-}
-
-
-/* Dots Layout */
-.half {
-    flex: 1;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-    padding: 4px;
-    box-sizing: border-box;
-    justify-items: center;
-    align-items: center;
-}
-
-.domino-piece.small .half {
-    padding: 2px;
-}
-
-.dot {
-    width: 7px;
-    height: 7px;
-    background-color: #111;
-    border-radius: 50%;
-    box-shadow: inset 1px 1px 2px rgba(255, 255, 255, 0.3);
-    display: none;
-    /* Hidden by default */
-}
-
-/* Dot Positions Grid 3x3
-   1 2 3
-   4 5 6
-   7 8 9
-*/
-
-/* Logic: We will use :nth-child to target position, but since we are generating dots dynamically 
-   it is easier to just map them to grid areas or specific cells.
-   But to keep React simple, let's just use specific classes for each dot count 
-   and place dots in specific grid cells.
-*/
-
-/* For simplicity in CSS grid, we can just place dot 1 at center, etc. */
-
-.half.val-1 .dot:nth-child(1) {
-    display: block;
-    grid-column: 2;
-    grid-row: 2;
-}
-
-.half.val-2 .dot:nth-child(1) {
-    display: block;
-    grid-column: 3;
-    grid-row: 1;
-}
-
-.half.val-2 .dot:nth-child(2) {
-    display: block;
-    grid-column: 1;
-    grid-row: 3;
-}
-
-.half.val-3 .dot:nth-child(1) {
-    display: block;
-    grid-column: 3;
-    grid-row: 1;
-}
-
-.half.val-3 .dot:nth-child(2) {
-    display: block;
-    grid-column: 2;
-    grid-row: 2;
-}
-
-.half.val-3 .dot:nth-child(3) {
-    display: block;
-    grid-column: 1;
-    grid-row: 3;
-}
-
-.half.val-4 .dot:nth-child(1) {
-    display: block;
-    grid-column: 1;
-    grid-row: 1;
-}
-
-.half.val-4 .dot:nth-child(2) {
-    display: block;
-    grid-column: 3;
-    grid-row: 1;
-}
-
-.half.val-4 .dot:nth-child(3) {
-    display: block;
-    grid-column: 1;
-    grid-row: 3;
-}
-
-.half.val-4 .dot:nth-child(4) {
-    display: block;
-    grid-column: 3;
-    grid-row: 3;
-}
-
-.half.val-5 .dot:nth-child(1) {
-    display: block;
-    grid-column: 1;
-    grid-row: 1;
-}
-
-.half.val-5 .dot:nth-child(2) {
-    display: block;
-    grid-column: 3;
-    grid-row: 1;
-}
-
-.half.val-5 .dot:nth-child(3) {
-    display: block;
-    grid-column: 2;
-    grid-row: 2;
-}
-
-.half.val-5 .dot:nth-child(4) {
-    display: block;
-    grid-column: 1;
-    grid-row: 3;
-}
-
-.half.val-5 .dot:nth-child(5) {
-    display: block;
-    grid-column: 3;
-    grid-row: 3;
-}
-
-.half.val-6 .dot:nth-child(1) {
-    display: block;
-    grid-column: 1;
-    grid-row: 1;
-}
-
-.half.val-6 .dot:nth-child(2) {
-    display: block;
-    grid-column: 3;
-    grid-row: 1;
-}
-
-.half.val-6 .dot:nth-child(3) {
-    display: block;
-    grid-column: 1;
-    grid-row: 2;
-}
-
-.half.val-6 .dot:nth-child(4) {
-    display: block;
-    grid-column: 3;
-    grid-row: 2;
-}
-
-.half.val-6 .dot:nth-child(5) {
-    display: block;
-    grid-column: 1;
-    grid-row: 3;
-}
-
-.half.val-6 .dot:nth-child(6) {
-    display: block;
-    grid-column: 3;
-    grid-row: 3;
-}
-
-/* Empty (0) has no dots displayed */

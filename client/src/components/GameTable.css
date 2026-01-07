@@ -1,446 +1,433 @@
-.game-table {
-    display: grid;
-    grid-template-areas:
-        "header header header"
-        "left top right"
-        "left board right"
-        "bottom bottom bottom";
-    grid-template-columns: 200px 1fr 200px;
-    grid-template-rows: auto auto 1fr auto;
-    /* Top player row auto size */
-    height: 100vh;
-    width: 100vw;
-    background-color: #1e6b38;
-    background-image:
-        radial-gradient(circle at center, rgba(255, 255, 255, 0.1) 0%, transparent 70%),
-        repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.02) 0px, rgba(0, 0, 0, 0.02) 2px, transparent 2px, transparent 4px);
-    color: white;
-    overflow: hidden;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+/* === MINIMALIST GAME TABLE (REDESIGN) === */
+:root {
+    /* Color Palette */
+    --table-bg-color: #1b4d3e;
+    /* Deep Green */
+    --table-bg-gradient: radial-gradient(circle at 50% 50%, #2e7d32 0%, #1b5e20 100%);
+    --ui-text-color: #ffffff;
+    --ui-glass-bg: rgba(0, 0, 0, 0.4);
+    --ui-glass-border: 1px solid rgba(255, 255, 255, 0.1);
+    --ui-primary: #4CAF50;
+    --ui-accent: #FFD700;
 }
 
-/* Info Bar */
-.info-bar {
-    grid-area: header;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 20px;
-    background-color: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(5px);
+body,
+html,
+#root {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* === MAIN CONTAINER === */
+.game-table {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    background: var(--table-bg-gradient);
+    overflow: hidden;
+    user-select: none;
+}
+
+/* Texture Overlay */
+.game-table::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.1;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* === BOARD LAYER (Background/Protagonist) === */
+.board-area {
+    position: absolute;
+    inset: 0;
+    /* Full Screen */
     z-index: 10;
 }
 
-/* Player Areas */
-.player-side {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 10px;
-    z-index: 5;
-}
-
-.player-side.left {
-    grid-area: left;
-    /* Removed border-right */
-}
-
-.player-side.right {
-    grid-area: right;
-    /* Removed border-left */
-}
-
-.player-side.top {
-    grid-area: top;
-    padding-bottom: 0;
-}
-
-/* Board Area */
-.board-area {
-    grid-area: board;
-    position: relative;
-    border-radius: 20px;
-    background-color: rgba(0, 0, 0, 0.2);
-    /* Shadow/Glow to highlight the limit */
-    /* box-shadow removed as per user request */
-    overflow: hidden;
-    margin: 10px;
-}
-
-/* ... */
-
-/* My Hand (Bottom) */
-/* My Hand (Bottom) */
-.my-hand-area {
-    grid-area: bottom;
-    background-color: transparent;
-    /* Seamless */
-    padding: 10px 0 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    border-top: none;
-    /* Remove division */
+.domino-board {
     width: 100%;
-    /* overflow: hidden; Removed to allow taller content if needed, though 'my-hand' handles scroll */
+    height: 100%;
+    /* Note: DominoBoard.css might add transform styles */
 }
 
-.my-player-info {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 10px;
-    /* Highlights removed */
-    background: transparent;
-    border: none;
-    padding: 5px 15px;
-}
+/* === UI LAYER (Floating) === */
 
-.my-player-info .avatar-wrapper {
-    width: 50px;
-    height: 50px;
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.my-player-info .player-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: #444;
-    /* Fallback */
-    color: white;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-weight: bold;
-    font-size: 1rem;
-    z-index: 2;
-    border: 2px solid white;
-}
-
-.team-A .player-avatar {
-    background: #d32f2f;
-}
-
-.team-B .player-avatar {
-    background: #304ffe;
-}
-
-.my-player-info .timer-ring {
+/* Top Right: Score Board */
+.info-bar {
     position: absolute;
-    top: 0;
-    left: 0;
-    transform: rotate(-90deg);
-    z-index: 1;
-}
-
-.my-player-info .player-details {
-    display: flex;
-    flex-direction: column;
-}
-
-.my-player-info .name {
-    font-weight: bold;
-    font-size: 1.1rem;
-    color: white;
-}
-
-.my-hand {
-    display: flex;
-    gap: 5px;
-    /* Reduced gap */
-    padding: 15px;
-    background-color: transparent;
-    /* Remove inner box background */
-    box-shadow: none;
-    border-radius: 16px;
-    margin-bottom: 10px;
-    max-width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    justify-content: flex-start;
-    /* Start from left if scrolling */
-}
-
-@media (max-width: 900px) {
-
-    /* Hand Container fits small pieces naturally */
-    .my-hand {
-        height: 100px;
-        /* ~90px piece + padding */
-        align-items: center;
-        padding-bottom: 5px;
-    }
-
-    /* Ensure pieces have a bit of shadow but NO scaling */
-    .my-hand .domino-piece {
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
-        border: 1px solid #999;
-    }
-
-    /* Fix Avatar Visibility/Styling */
-    .player-avatar {
-        background: #333;
-        color: white;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        border-radius: 50%;
-    }
-}
-
-/* Mobile Hand Adjustments */
-@media (max-width: 768px) {
-    .my-hand-area {
-        padding: 5px 0 10px;
-    }
-
-    .my-hand {
-        width: 100vw;
-        /* Full width */
-        border-radius: 0;
-        padding: 10px 5px;
-        gap: 5px;
-        background: transparent;
-    }
-
-    /* Ensure controls (pass button) don't get squashed */
-    .controls {
-        margin-bottom: 5px;
-    }
-}
-
-.controls {
-    display: flex;
-    gap: 15px;
-}
-
-button {
-    padding: 8px 20px;
-    border-radius: 6px;
-    border: none;
-    font-weight: bold;
-    cursor: pointer;
-    transition: transform 0.1s;
-}
-
-button:active {
-    transform: scale(0.95);
-}
-
-.pass-btn {
-    background-color: #ff4444;
-    color: white;
-}
-
-.extension-btn {
-    background-color: #4444ff;
-    color: white;
-}
-
-
-/* Overlays */
-.overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.85);
+    top: 24px;
+    right: 24px;
+    left: auto;
     z-index: 100;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    gap: 8px;
+    align-items: flex-end;
+    /* Right align text/boxes */
+}
+
+.room-info {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-left: 4px;
+}
+
+.scoreboard {
+    background: var(--ui-glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: var(--ui-glass-border);
+    border-radius: 16px;
+    padding: 12px 20px;
+    min-width: 140px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.score-item {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 4px 0;
 }
 
-.overlay h2 {
-    font-size: 3rem;
-    color: #ffd700;
-    margin-bottom: 20px;
+.score-item.team-a {
+    color: #81c784;
 }
 
-.winner-name {
-    font-size: 2rem;
-    margin-bottom: 10px;
+.score-item.team-b {
+    color: #64b5f6;
 }
 
+/* === PLAYER AVATAR & INFO (Floating) === */
+.player-side {
+    position: absolute;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
-/* Compact Player Card (New Design) */
-.compact-player-card {
+.player-info-group {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 5px;
     position: relative;
-    width: 80px;
-    /* Reduced width */
+    cursor: default;
 }
 
-.compact-player-card .avatar-wrapper {
-    position: relative;
-    width: 60px;
-    /* Space for border */
-    height: 60px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.compact-player-card .player-avatar {
-    width: 50px;
-    height: 50px;
+/* Avatar Circle */
+.player-avatar {
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
-    background: #333;
-    color: white;
+    background: #262626;
+    /* Dark slate */
+    color: #fff;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-weight: bold;
     font-size: 1.2rem;
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    z-index: 2;
+    font-weight: 700;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
 }
 
-/* Timer Ring SVG */
+/* Active Turn Ring */
+.active-turn .player-avatar {
+    border-color: var(--ui-accent);
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    transform: scale(1.05);
+}
+
+/* Timer Ring Animation */
 .timer-ring {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 60px;
-    height: 60px;
-    transform: rotate(-90deg);
-    /* Start from top */
-    z-index: 1;
-    pointer-events: none;
+    inset: -6px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    border-top-color: #00e676;
+    /* Bright Green */
+    animation: spin 1s linear infinite;
+    display: none;
 }
 
-.timer-ring circle {
-    fill: transparent;
-    stroke-width: 4;
-    stroke-linecap: round;
-    transition: stroke-dashoffset 1s linear;
+.active-turn .timer-ring {
+    display: block;
 }
 
-.timer-ring-bg {
-    stroke: rgba(255, 255, 255, 0.1);
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
-.timer-ring-progress {
-    stroke: #ffd700;
-    /* Gold for active turn */
-    filter: drop-shadow(0 0 2px #ffd700);
-}
-
-/* Color based on team */
-.team-A .timer-ring-progress {
-    stroke: #ff4444;
-    filter: drop-shadow(0 0 2px #ff4444);
-}
-
-.team-B .timer-ring-progress {
-    stroke: #4444ff;
-    filter: drop-shadow(0 0 2px #4444ff);
-}
-
-
-.compact-player-card .player-name {
-    font-size: 0.9rem;
-    font-weight: 600;
+/* Player Name */
+.player-name {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
     color: white;
-    text-shadow: 0 1px 2px black;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-    text-align: center;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 4px 10px;
+    border-radius: 12px;
+    backdrop-filter: blur(4px);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    opacity: 0.9;
 }
 
-.compact-player-card .opponent-hand-container {
+/* Player Hand (Opponent Tokens) */
+.opponent-hand-container {
     display: flex;
-    justify-content: center;
-    align-items: center;
-    /* Allow overlap if needed, or just small gap */
-    gap: 2px;
-    margin-top: 2px;
-    /* Default to horizontal for Top player */
-    height: 60px;
+    gap: 4px;
+    margin: 8px;
+    /* Spacing from avatar */
 }
 
-/* Adjust card layout for side players */
-.player-side.left .compact-player-card {
+/* === OPPONENT TILES (Minimal) === */
+.mini-tile-back {
+    border-radius: 2px;
+    background: #e0e0e0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* --- TOP LOCATION --- */
+.player-side.top {
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    flex-direction: column;
+}
+
+.player-side.top .mini-tile-back {
+    width: 10px;
+    height: 28px;
+    /* Vertical Token */
+}
+
+/* --- LEFT LOCATION --- */
+.player-side.left {
+    top: 50%;
+    left: 24px;
+    transform: translateY(-50%);
     flex-direction: row;
-    align-items: center;
+    /* Avatar Left, Tiles Right? Or Stacked? */
 }
 
-.player-side.right .compact-player-card {
-    flex-direction: row-reverse;
-    align-items: center;
+/* For pure minimalist, maybe stack layout for side players too? */
+.player-side.left .player-info-group {
+    align-items: flex-start;
+    /* Align Left */
 }
 
-/* Vertical stack for Side players */
 .player-side.left .opponent-hand-container {
     flex-direction: column;
-    width: 60px;
-    /* Matched to horizontal tile width */
-    height: auto;
-    margin-top: 0;
-    margin-left: 5px;
+    /* Stacked tokens */
+}
+
+.player-side.left .mini-tile-back {
+    width: 28px;
+    height: 10px;
+    /* Horizontal Token */
+}
+
+/* --- RIGHT LOCATION --- */
+.player-side.right {
+    top: 50%;
+    right: 24px;
+    transform: translateY(-50%);
+    flex-direction: row-reverse;
+    /* Avatar Right */
+}
+
+.player-side.right .player-info-group {
+    align-items: flex-end;
+    /* Align Right */
 }
 
 .player-side.right .opponent-hand-container {
     flex-direction: column;
-    width: 60px;
-    /* Matched to horizontal tile width */
-    height: auto;
-    margin-top: 0;
-    margin-right: 5px;
-    margin-left: 0;
 }
 
-.mini-tile-back {
-    width: 30px;
-    /* Match 'small' size width */
-    height: 60px;
-    /* Match 'small' size height */
-    background: linear-gradient(135deg, #f0f0f0 0%, #d0d0d0 100%);
-    border: 1px solid #999;
-    border-radius: 4px;
-    /* Slightly larger radius */
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-
-.player-side.left .mini-tile-back,
 .player-side.right .mini-tile-back {
-    /* Tiles lying down horizontally */
-    width: 60px;
-    height: 30px;
-    margin: 2px 0;
-    /* Small vertical gap */
-    background: linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%);
+    width: 28px;
+    height: 10px;
 }
 
-/* Mobile Overrides if needed */
-@media (max-width: 900px) {
+/* --- BOTTOM LOCATION (ME) --- */
+.player-me {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
 
-    .player-side.left {
-        align-items: flex-start;
-        margin-left: 10px;
+.player-me .player-name {
+    margin-bottom: 12px;
+    font-size: 1rem;
+    color: var(--ui-accent);
+}
+
+.my-hand-container {
+    display: flex;
+    gap: 12px;
+    padding: 16px 24px;
+    background: var(--ui-glass-bg);
+    border-radius: 24px;
+    backdrop-filter: blur(16px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.my-hand-container:hover {
+    transform: translateY(-8px);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* === RESPONSIVE (Simple Mobile Tweaks) === */
+@media (max-width: 768px) {
+    .player-avatar {
+        width: 44px;
+        height: 44px;
+        font-size: 1rem;
     }
 
-    .player-side.right {
-        align-items: flex-end;
-        margin-right: 10px;
+    .scoreboard {
+        padding: 8px 12px;
+        min-width: 100px;
     }
 
-    .compact-player-card {
-        width: auto;
+    .my-hand-container {
+        padding: 10px 16px;
+        gap: 8px;
+    }
+
+    .info-bar {
+        top: 12px;
+        left: 12px;
+    }
+}
+
+/* === MODAL OVERLAYS (End Hand / Game) === */
+.overlay {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(8px);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    padding: 0;
+    /* NO padding */
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Modal Card Content */
+.overlay>* {
+    z-index: 2001;
+}
+
+.overlay h2 {
+    font-size: 1.6rem;
+    /* Tiny Title */
+    font-weight: 800;
+    margin-bottom: 4px;
+    background: linear-gradient(135deg, #fff 0%, #e0e0e0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    text-align: center;
+}
+
+.winner-name {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--ui-accent);
+    margin-bottom: 2px;
+}
+
+.win-reason {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 12px;
+}
+
+.hand-points {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 6px 20px;
+    border-radius: 50px;
+    /* Pill shape */
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.hand-points h3 {
+    font-size: 1.4rem;
+    margin: 0;
+    line-height: 1;
+}
+
+/* Buttons */
+.ready-system {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.ready-system button.primary {
+    background: var(--ui-accent);
+    color: #1a472a;
+    border: none;
+    padding: 12px 40px;
+    font-size: 1rem;
+    font-weight: 800;
+    border-radius: 100px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+    transition: all 0.2s ease;
+}
+
+.ready-system button.primary:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.5);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        backdrop-filter: blur(0px);
+    }
+
+    to {
+        opacity: 1;
+        backdrop-filter: blur(12px);
     }
 }
