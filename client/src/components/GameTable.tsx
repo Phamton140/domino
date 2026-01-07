@@ -287,7 +287,7 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
                     </div>
                 )}
 
-                // Reemplaza el bloque de renderizado de la mano (alrededor de la línea 220) por este:
+
                 <div className="my-hand-container">
                     {myPlayer?.hand.map((piece, i) => {
                         const head = gameState.board[0]?.piece[0];
