@@ -25,7 +25,6 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
     const positionedPieces = useMemo(() => {
         if (board.length === 0) return [];
 
-        // 1. Determine Anchor Piece (The "Zero" Point)
         let anchorIndex = -1;
 
         if (anchorRef.current) {
@@ -34,7 +33,6 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
             );
         }
 
-        // If not found or not set, pick the middle piece as the stable anchor
         if (anchorIndex === -1) {
             anchorIndex = Math.floor(board.length / 2);
             anchorRef.current = board[anchorIndex].piece;
@@ -42,11 +40,9 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
 
         const centerPiece = board[anchorIndex];
 
-        // 2. Build Chains relative to Anchor
         const leftChain: { piece: Piece, matchVal: number }[] = [];
         const rightChain: { piece: Piece, matchVal: number }[] = [];
 
-        // Build Right Chain (Indices > Anchor)
         let previousPiece = centerPiece.piece;
         for (let i = anchorIndex + 1; i < board.length; i++) {
             const p = board[i].piece;
@@ -55,7 +51,6 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
             previousPiece = p;
         }
 
-        // Build Left Chain (Indices < Anchor)
         previousPiece = centerPiece.piece;
         for (let i = anchorIndex - 1; i >= 0; i--) {
             const p = board[i].piece;
@@ -72,7 +67,6 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
         const cW = centerIsDouble ? 30 : 60;
         const cH = centerIsDouble ? 60 : 30;
 
-        // Place Anchor Piece at (0,0)
         results.push({
             piece: centerPiece.piece,
             x: -cW / 2, y: -cH / 2,
@@ -81,75 +75,85 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
             isAnchor: true
         });
 
-        const layoutChain = (chain: any[], initX: number, initY: number, dirX: number) => {
-            let curX = initX;
-            let curY = initY;
-            let currentDirX = dirX;
+        const layoutChain = (chain: any[], anchorX: number, anchorY: number, initialDirX: number) => {
+            let lastX = anchorX;
+            let lastY = anchorY;
+            let lastW = cW;
+            let lastH = cH;
+
+            let curDirX = initialDirX;
+            let curDirY = (initialDirX === 1) ? 1 : -1;
+
             let state = 0; // 0: Horizontal, 1: Vertical
-            let vDirY = (dirX === 1) ? -1 : 1; // Right goes Up, Left goes Down (as per original logic)
             let vCount = 0;
             let vHasDouble = false;
-            let lastH = cH;
+
+            let lastState = 0;
+            let lastIsDouble = centerIsDouble;
 
             chain.forEach((item, index) => {
                 const { piece, matchVal } = item;
                 const isDouble = piece[0] === piece[1];
 
-                // Trigger turn
                 if (state === 0 && index > 0 && (index % MAX_HORIZONTAL === 0) && !isDouble) {
                     state = 1;
                     vCount = 0;
                     vHasDouble = false;
                 }
 
-                let w, h;
-                const forceVertical = (state === 1);
-
-                if (!forceVertical) {
+                let w, h, orientation;
+                if (state === 0) {
                     w = isDouble ? 30 : 60;
                     h = isDouble ? 60 : 30;
+                    orientation = isDouble ? "vertical" : "horizontal";
                 } else {
                     w = isDouble ? 60 : 30;
                     h = isDouble ? 30 : 60;
-                }
-
-                // Determine Values Orientation
-                let renderValues: Piece = [...piece];
-                if (state === 0) {
-                    if (currentDirX === 1) renderValues = (piece[0] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
-                    else renderValues = (piece[1] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
-                } else {
-                    if (vDirY === -1) renderValues = (piece[1] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
-                    else renderValues = (piece[0] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
+                    orientation = (isDouble) ? "horizontal" : "vertical";
                 }
 
                 let pX = 0, pY = 0;
+                let renderValues = [...piece];
+                let thisState = state;
+
                 if (state === 0) {
-                    pX = (currentDirX === 1) ? curX + GAP : curX - GAP - w;
-                    pY = curY - (h / 2);
-                    curX = (currentDirX === 1) ? pX + w : pX;
+                    // Horizontal
+                    const dist = (lastW / 2) + GAP + (w / 2);
+                    pX = lastX + (dist * curDirX);
+                    pY = lastY;
+
+                    // Return Offset (Vert -> Horz, non-double)
+                    if (lastState === 1 && !lastIsDouble) {
+                        pY += (15 * curDirY);
+                    }
+
+                    if (curDirX === 1) renderValues = (piece[0] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
+                    else renderValues = (piece[1] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
+
                 } else {
-                    // Vertical / Turn
+                    // Vertical
                     if (vCount === 0) {
-                        // First piece of turn (The Corner)
-                        pX = (currentDirX === 1) ? curX : curX - w;
+                        // Corner (Horz -> Vert)
+                        const dist = (lastW / 2) + GAP + (w / 2);
+                        pX = lastX + (dist * curDirX);
+                        pY = lastY;
 
-                        const offset = (lastH / 2) + (h / 2);
-                        // Original logic for pY:
-                        pY = (vDirY === -1) ? curY - offset : curY;
-                        // For vDirY=1, pY=curY. This aligns Top of new piece with Center Line? 
-                        // Let's trust original Y logic but fix X stability.
+                        // Corner Offset (Horz -> Vert, non-double)
+                        if (!isDouble) {
+                            pY += (15 * curDirY);
+                        }
 
-                        // Update curY for next piece in stack
-                        // If going Up (-1): next piece is above.
-                        // If going Down (1): next piece is below.
-                        // We need to set curY to the "End" of this piece.
-                        curY = (vDirY === -1) ? pY : pY + h;
+                        if (curDirY === 1) renderValues = (piece[0] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
+                        else renderValues = (piece[1] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
+
                     } else {
-                        // Subsequent vertical pieces
-                        pX = (currentDirX === 1) ? curX : curX - w;
-                        pY = (vDirY === -1) ? curY - GAP - h : curY + GAP;
-                        curY = (vDirY === -1) ? pY : pY + h;
+                        // Stack
+                        const dist = (lastH / 2) + GAP + (h / 2);
+                        pX = lastX;
+                        pY = lastY + (dist * curDirY);
+
+                        if (curDirY === 1) renderValues = (piece[0] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
+                        else renderValues = (piece[1] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
                     }
 
                     vCount++;
@@ -157,29 +161,29 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
 
                     if (vCount >= (vHasDouble ? 3 : 2)) {
                         state = 0;
-                        currentDirX *= -1; // Snake back
-
-                        // Reset cursor for Horizontal
-                        curX = pX + (currentDirX === 1 ? w : 0);
-                        // Center Y for horizontal line is aligned with the vertical piece center?
-                        // Or bottom?
-                        // pY is Top-Left equivalent. Center Y is pY + h/2.
-                        curY = pY + (h / 2);
+                        curDirX *= -1;
                     }
                 }
 
                 results.push({
                     piece: renderValues,
-                    x: pX, y: pY,
+                    x: pX - (w / 2),
+                    y: pY - (h / 2),
                     width: w, height: h,
-                    orientation: (w === 30 || (isDouble && state === 1)) ? "vertical" : "horizontal"
+                    orientation: orientation
                 });
+
+                lastX = pX;
+                lastY = pY;
+                lastW = w;
                 lastH = h;
+                lastState = thisState;
+                lastIsDouble = isDouble;
             });
         };
 
-        layoutChain(rightChain, cW / 2, 0, 1);
-        layoutChain(leftChain, -cW / 2, 0, -1);
+        layoutChain(rightChain, 0, 0, 1);
+        layoutChain(leftChain, 0, 0, -1);
 
         return results;
     }, [board]);
