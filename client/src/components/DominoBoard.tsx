@@ -82,11 +82,12 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
             let lastH = cH;
 
             let curDirX = initialDirX;
-            let curDirY = (initialDirX === 1) ? 1 : -1;
+            let curDirY = (initialDirX === 1) ? -1 : 1;
 
             let state = 0; // 0: Horizontal, 1: Vertical
             let vCount = 0;
             let vHasDouble = false;
+            let horzCount = 0;
 
             let lastState = 0;
             let lastIsDouble = centerIsDouble;
@@ -95,10 +96,11 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                 const { piece, matchVal } = item;
                 const isDouble = piece[0] === piece[1];
 
-                if (state === 0 && index > 0 && (index % MAX_HORIZONTAL === 0) && !isDouble) {
+                if (state === 0 && horzCount >= MAX_HORIZONTAL && !isDouble) {
                     state = 1;
                     vCount = 0;
                     vHasDouble = false;
+                    horzCount = 0;
                 }
 
                 let w, h, orientation;
@@ -122,7 +124,7 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                     pX = lastX + (dist * curDirX);
                     pY = lastY;
 
-                    // Return Offset (Vert -> Horz, non-double)
+                    // Return Offset
                     if (lastState === 1 && !lastIsDouble) {
                         pY += (15 * curDirY);
                     }
@@ -130,15 +132,17 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                     if (curDirX === 1) renderValues = (piece[0] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
                     else renderValues = (piece[1] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
 
+                    horzCount++;
+
                 } else {
                     // Vertical
                     if (vCount === 0) {
-                        // Corner (Horz -> Vert)
+                        // Corner
                         const dist = (lastW / 2) + GAP + (w / 2);
                         pX = lastX + (dist * curDirX);
                         pY = lastY;
 
-                        // Corner Offset (Horz -> Vert, non-double)
+                        // Corner Offset
                         if (!isDouble) {
                             pY += (15 * curDirY);
                         }
@@ -162,6 +166,7 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                     if (vCount >= (vHasDouble ? 3 : 2)) {
                         state = 0;
                         curDirX *= -1;
+                        horzCount = 0;
                     }
                 }
 
