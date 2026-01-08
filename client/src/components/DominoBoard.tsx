@@ -206,9 +206,11 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
     return (
         <div className="domino-board" ref={containerRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
             <div className="pieces-layer" style={{ transform: `translate(${viewState.x}px, ${viewState.y}px)` }}>
-                {positionedPieces.map((item, i) => (
-                    <div key={i} className="piece-wrapper" style={{ transform: `translate(${item.x}px, ${item.y}px)`, width: item.width, height: item.height }}>
-                        <DominoPiece values={item.piece} orientation={item.orientation} size="medium" disabled />
+                {positionedPieces.map((item) => (
+                    <div key={`${item.piece[0]}-${item.piece[1]}`} className="piece-wrapper" style={{ transform: `translate(${item.x}px, ${item.y}px)`, width: item.width, height: item.height }}>
+                        <div className="piece-animator">
+                            <DominoPiece values={item.piece} orientation={item.orientation} size="medium" disabled />
+                        </div>
                     </div>
                 ))}
             </div>
