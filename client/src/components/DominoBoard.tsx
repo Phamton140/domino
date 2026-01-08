@@ -89,13 +89,16 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
             let vHasDouble = false;
             let horzCount = 0;
 
+            // Track state of previous piece to handle transitions
             let lastState = 0;
             let lastIsDouble = centerIsDouble;
+            let lastOrientation = centerIsDouble ? "vertical" : "horizontal";
 
             chain.forEach((item, index) => {
                 const { piece, matchVal } = item;
                 const isDouble = piece[0] === piece[1];
 
+                // Check Turn Condition (Flexible)
                 if (state === 0 && horzCount >= MAX_HORIZONTAL && !isDouble) {
                     state = 1;
                     vCount = 0;
@@ -103,28 +106,31 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                     horzCount = 0;
                 }
 
-                let w, h, orientation;
-                if (state === 0) {
-                    w = isDouble ? 30 : 60;
-                    h = isDouble ? 60 : 30;
-                    orientation = isDouble ? "vertical" : "horizontal";
+                // Determine Orientation & Size
+                let orientation: string;
+                if (isDouble) {
+                    // Doubles are ALWAYS perpendicular to the previous piece
+                    orientation = (lastOrientation === "horizontal") ? "vertical" : "horizontal";
                 } else {
-                    w = isDouble ? 60 : 30;
-                    h = isDouble ? 30 : 60;
-                    orientation = (isDouble) ? "horizontal" : "vertical";
+                    // Normal pieces follow the chain state (0=Horizontal, 1=Vertical)
+                    orientation = (state === 0) ? "horizontal" : "vertical";
                 }
 
+                const w = (orientation === "horizontal") ? 60 : 30;
+                const h = (orientation === "horizontal") ? 30 : 60;
+
+                // Calculate Position (Center-to-Center)
                 let pX = 0, pY = 0;
                 let renderValues = [...piece];
                 let thisState = state;
 
                 if (state === 0) {
-                    // Horizontal
+                    // Horizontal Flow
                     const dist = (lastW / 2) + GAP + (w / 2);
                     pX = lastX + (dist * curDirX);
                     pY = lastY;
 
-                    // Return Offset
+                    // Return Offset logic stays same
                     if (lastState === 1 && !lastIsDouble) {
                         pY += (15 * curDirY);
                     }
@@ -135,15 +141,17 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                     horzCount++;
 
                 } else {
-                    // Vertical
+                    // Vertical Flow
                     if (vCount === 0) {
-                        // Corner
+                        // Corner Piece
                         const dist = (lastW / 2) + GAP + (w / 2);
                         pX = lastX + (dist * curDirX);
                         pY = lastY;
 
-                        // Corner Offset
-                        if (!isDouble) {
+                        // Corner Offset Logic
+                        // Only apply L-shape offset if BOTH are Normal pieces.
+                        // If any is a Double, connect Center-to-Center ("Middle Line").
+                        if (!isDouble && !lastIsDouble) {
                             pY += (15 * curDirY);
                         }
 
@@ -151,7 +159,7 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                         else renderValues = (piece[1] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
 
                     } else {
-                        // Stack
+                        // Stack Piece
                         const dist = (lastH / 2) + GAP + (h / 2);
                         pX = lastX;
                         pY = lastY + (dist * curDirY);
@@ -184,6 +192,7 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                 lastH = h;
                 lastState = thisState;
                 lastIsDouble = isDouble;
+                lastOrientation = orientation;
             });
         };
 
