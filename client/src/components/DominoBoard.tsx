@@ -10,6 +10,7 @@ interface Props {
 export const DominoBoard: React.FC<Props> = ({ board }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [dim, setDim] = useState({ w: 1200, h: 800 });
+    const anchorRef = useRef<Piece | null>(null);
 
     useEffect(() => {
         if (!containerRef.current) return;
@@ -24,22 +25,39 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
     const positionedPieces = useMemo(() => {
         if (board.length === 0) return [];
 
-        const midIndex = Math.floor(board.length / 2);
-        const centerPiece = board[midIndex];
+        // 1. Determine Anchor Piece (The "Zero" Point)
+        let anchorIndex = -1;
 
+        if (anchorRef.current) {
+            anchorIndex = board.findIndex(b =>
+                b.piece[0] === anchorRef.current![0] && b.piece[1] === anchorRef.current![1]
+            );
+        }
+
+        // If not found or not set, pick the middle piece as the stable anchor
+        if (anchorIndex === -1) {
+            anchorIndex = Math.floor(board.length / 2);
+            anchorRef.current = board[anchorIndex].piece;
+        }
+
+        const centerPiece = board[anchorIndex];
+
+        // 2. Build Chains relative to Anchor
         const leftChain: { piece: Piece, matchVal: number }[] = [];
         const rightChain: { piece: Piece, matchVal: number }[] = [];
 
+        // Build Right Chain (Indices > Anchor)
         let previousPiece = centerPiece.piece;
-        for (let i = midIndex + 1; i < board.length; i++) {
+        for (let i = anchorIndex + 1; i < board.length; i++) {
             const p = board[i].piece;
             const matchVal = (p[0] === previousPiece[0] || p[0] === previousPiece[1]) ? p[0] : p[1];
             rightChain.push({ piece: p, matchVal });
             previousPiece = p;
         }
 
+        // Build Left Chain (Indices < Anchor)
         previousPiece = centerPiece.piece;
-        for (let i = midIndex - 1; i >= 0; i--) {
+        for (let i = anchorIndex - 1; i >= 0; i--) {
             const p = board[i].piece;
             const matchVal = (p[0] === previousPiece[0] || p[0] === previousPiece[1]) ? p[0] : p[1];
             leftChain.push({ piece: p, matchVal });
@@ -54,19 +72,21 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
         const cW = centerIsDouble ? 30 : 60;
         const cH = centerIsDouble ? 60 : 30;
 
+        // Place Anchor Piece at (0,0)
         results.push({
             piece: centerPiece.piece,
             x: -cW / 2, y: -cH / 2,
             width: cW, height: cH,
-            orientation: centerIsDouble ? "vertical" : "horizontal"
+            orientation: centerIsDouble ? "vertical" : "horizontal",
+            isAnchor: true
         });
 
         const layoutChain = (chain: any[], initX: number, initY: number, dirX: number) => {
             let curX = initX;
             let curY = initY;
             let currentDirX = dirX;
-            let state = 0;
-            let vDirY = (dirX === 1) ? -1 : 1;
+            let state = 0; // 0: Horizontal, 1: Vertical
+            let vDirY = (dirX === 1) ? -1 : 1; // Right goes Up, Left goes Down (as per original logic)
             let vCount = 0;
             let vHasDouble = false;
             let lastH = cH;
@@ -75,19 +95,25 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                 const { piece, matchVal } = item;
                 const isDouble = piece[0] === piece[1];
 
-                if (state === 0 && index >= MAX_HORIZONTAL && !isDouble) {
+                // Trigger turn
+                if (state === 0 && index > 0 && (index % MAX_HORIZONTAL === 0) && !isDouble) {
                     state = 1;
                     vCount = 0;
                     vHasDouble = false;
                 }
 
                 let w, h;
-                if (state === 0) {
-                    w = isDouble ? 30 : 60; h = isDouble ? 60 : 30;
+                const forceVertical = (state === 1);
+
+                if (!forceVertical) {
+                    w = isDouble ? 30 : 60;
+                    h = isDouble ? 60 : 30;
                 } else {
-                    w = isDouble ? 60 : 30; h = isDouble ? 30 : 60;
+                    w = isDouble ? 60 : 30;
+                    h = isDouble ? 30 : 60;
                 }
 
+                // Determine Values Orientation
                 let renderValues: Piece = [...piece];
                 if (state === 0) {
                     if (currentDirX === 1) renderValues = (piece[0] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
@@ -103,60 +129,70 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                     pY = curY - (h / 2);
                     curX = (currentDirX === 1) ? pX + w : pX;
                 } else {
+                    // Vertical / Turn
                     if (vCount === 0) {
-                        // FIX OVERLAP: Place Vertical piece OUTSIDE the current horizontal chain.
-                        // If moving Right (dir=1), curX is the Right Edge. Place at curX.
-                        // If moving Left (dir=-1), curX is the Left Edge. Place at curX - w.
+                        // First piece of turn (The Corner)
                         pX = (currentDirX === 1) ? curX : curX - w;
 
                         const offset = (lastH / 2) + (h / 2);
+                        // Original logic for pY:
                         pY = (vDirY === -1) ? curY - offset : curY;
-                    } else {
-                        // Stack subsequent vertical pieces aligned with the first one
-                        pX = (currentDirX === 1) ? curX : curX - w; // Maintain X alignment
-                        // Actually, for stack, X should match the PREVIOUS vertical piece's X.
-                        // Since we didn't update curX for vertical steps, we need to track the "Vertical Column X".
-                        // Use a variable or infer from previous loop?
-                        // SIMPLER: In this scope, 'curX' hasn't changed since entering State 1.
-                        // So the same logic 'curX' or 'curX - w' applies if we want them stacked vertically.
-                        // Wait, if dir=1, pX=curX. If we keep pX=curX, they stack perfectly.
-                        pX = (currentDirX === 1) ? curX : curX - w;
+                        // For vDirY=1, pY=curY. This aligns Top of new piece with Center Line? 
+                        // Let's trust original Y logic but fix X stability.
 
+                        // Update curY for next piece in stack
+                        // If going Up (-1): next piece is above.
+                        // If going Down (1): next piece is below.
+                        // We need to set curY to the "End" of this piece.
+                        curY = (vDirY === -1) ? pY : pY + h;
+                    } else {
+                        // Subsequent vertical pieces
+                        pX = (currentDirX === 1) ? curX : curX - w;
                         pY = (vDirY === -1) ? curY - GAP - h : curY + GAP;
+                        curY = (vDirY === -1) ? pY : pY + h;
                     }
-                    curY = (vDirY === -1) ? pY : pY + h;
+
                     vCount++;
                     if (isDouble) vHasDouble = true;
 
                     if (vCount >= (vHasDouble ? 3 : 2)) {
                         state = 0;
-                        currentDirX *= -1;
+                        currentDirX *= -1; // Snake back
+
+                        // Reset cursor for Horizontal
                         curX = pX + (currentDirX === 1 ? w : 0);
+                        // Center Y for horizontal line is aligned with the vertical piece center?
+                        // Or bottom?
+                        // pY is Top-Left equivalent. Center Y is pY + h/2.
                         curY = pY + (h / 2);
                     }
                 }
 
-                results.push({ piece: renderValues, x: pX, y: pY, width: w, height: h, orientation: (w === 30 ? "vertical" : "horizontal") });
+                results.push({
+                    piece: renderValues,
+                    x: pX, y: pY,
+                    width: w, height: h,
+                    orientation: (w === 30 || (isDouble && state === 1)) ? "vertical" : "horizontal"
+                });
                 lastH = h;
             });
         };
 
         layoutChain(rightChain, cW / 2, 0, 1);
         layoutChain(leftChain, -cW / 2, 0, -1);
+
         return results;
     }, [board]);
 
     const [viewState, setViewState] = useState({ x: 0, y: 0, scale: 1.0, isDragging: false, startX: 0, startY: 0 });
     const [initialized, setInitialized] = useState(false);
 
-    // Initial Center Calculation (Run Only Once or on Resize if desired, here just once to lock)
     useEffect(() => {
         if (board.length > 0 && !initialized && dim.w > 0) {
-            // Start centered perfectly on screen as requested
             setViewState(prev => ({
                 ...prev,
                 x: dim.w / 2,
-                y: dim.h * 0.45, // Optical Center
+                y: dim.h * 0.45,
                 scale: 1.0
             }));
             setInitialized(true);
