@@ -379,63 +379,88 @@ export class GameEngine {
             return;
         }
 
+        // Stop timer immediately to pause game flow
+        if (this.timer) {
+            clearTimeout(this.timer);
+            this.timer = null;
+        }
+
         this.gameState.consecutivePasses++;
         console.log(`Pass count: ${this.gameState.consecutivePasses}`);
 
-        // Check for Pase Redondo (Round Pass) - All 3 opponents passed, turn returns to same player
-        // IMPORTANT: Only if the current player CAN still play (not a Tranque)
-        if (this.gameState.consecutivePasses === 3) {
-            const currentPlayer = this.getCurrentPlayer();
+        // Broadcast state immediately so client shows "Pass" notification
+        if (this.onStateChange) {
+            this.onStateChange(this.getState());
+        }
 
-            // Check if current player has valid moves
-            if (currentPlayer && this.findAnyValidMove(currentPlayer)) {
-                // Check team score - Pase Redondo does NOT apply if team has 170+ points
-                const teamPlayers = this.gameState.players.filter(p => p.team === currentPlayer.team);
-                const teamScore = teamPlayers.reduce((sum, p) => sum + p.score, 0);
+        // DELAY: Wait 2.5s before moving to next player
+        // This allows the "Pass" animation to play without eating into the next player's time
+        setTimeout(() => {
+            // Check for Pase Redondo (Round Pass) - All 3 opponents passed, turn returns to same player
+            // IMPORTANT: Only if the current player CAN still play (not a Tranque)
+            if (this.gameState.consecutivePasses === 3) {
+                const currentPlayer = this.getCurrentPlayer();
 
-                if (teamScore >= 170) {
-                    console.log(`⚠️ Pase Redondo NOT applied - Team ${currentPlayer.team} has ${teamScore} points (170+ limit)`);
-                    // Reset consecutive passes but no bonus
+                // Check if current player has valid moves
+                if (currentPlayer && this.findAnyValidMove(currentPlayer)) {
+                    // Check team score - Pase Redondo does NOT apply if team has 170+ points
+                    const teamPlayers = this.gameState.players.filter(p => p.team === currentPlayer.team);
+                    const teamScore = teamPlayers.reduce((sum, p) => sum + p.score, 0);
+
+                    if (teamScore >= 170) {
+                        console.log(`⚠️ Pase Redondo NOT applied - Team ${currentPlayer.team} has ${teamScore} points (170+ limit)`);
+                        // Reset consecutive passes but no bonus
+                        this.gameState.consecutivePasses = 0;
+                        this.startTurnTimer();
+                        // Broadcast update again (turn starts)
+                        if (this.onStateChange) this.onStateChange(this.getState());
+                        return;
+                    }
+
+                    // TRUE Pase Redondo - player can continue playing and team < 170
+                    console.log(`🎉 PASE REDONDO! Player ${currentPlayer.name} can still play, +30 bonus`);
+
+                    // Award +30 to the team
+                    teamPlayers.forEach(p => p.score += 30);
+
+                    // Notify about Pase Redondo
+                    if (this.onStateChange) {
+                        this.onStateChange(this.getState());
+                    }
+
+                    console.log(`📢 +30 Pase Redondo for Team ${currentPlayer.team}`);
+
+                    // Reset consecutive passes
                     this.gameState.consecutivePasses = 0;
+
+                    // Turn stays with current player, restart timer
                     this.startTurnTimer();
+                    // Broadcast update again (turn starts)
+                    if (this.onStateChange) this.onStateChange(this.getState());
                     return;
+                } else {
+                    // Current player also can't play - this will be a Tranque on next pass
+                    console.log(`⚠️ Not a Pase Redondo - current player also can't play (Tranque incoming)`);
+                    // Continue to next player to complete the Tranque
                 }
-
-                // TRUE Pase Redondo - player can continue playing and team < 170
-                console.log(`🎉 PASE REDONDO! Player ${currentPlayer.name} can still play, +30 bonus`);
-
-                // Award +30 to the team
-                teamPlayers.forEach(p => p.score += 30);
-
-                // Notify about Pase Redondo
-                if (this.onStateChange) {
-                    this.onStateChange(this.getState());
-                }
-
-                console.log(`📢 +30 Pase Redondo for Team ${currentPlayer.team}`);
-
-                // Reset consecutive passes
-                this.gameState.consecutivePasses = 0;
-
-                // Turn stays with current player, restart timer
-                this.startTurnTimer();
-                return;
-            } else {
-                // Current player also can't play - this will be a Tranque on next pass
-                console.log(`⚠️ Not a Pase Redondo - current player also can't play (Tranque incoming)`);
-                // Continue to next player to complete the Tranque
             }
-        }
 
-        // Check for Tranque (all 4 passed)
-        if (this.gameState.consecutivePasses === 4) {
-            console.log(`🔒 TRANQUE - All players passed`);
-            this.handleTranque();
-            return;
-        }
+            // Check for Tranque (all 4 passed)
+            if (this.gameState.consecutivePasses === 4) {
+                console.log(`🔒 TRANQUE - All players passed`);
+                this.handleTranque();
+                return;
+            }
 
-        // Move to next player
-        this.nextTurn();
+            // Move to next player
+            this.nextTurn();
+
+            // Broadcast update again (new turn starts)
+            if (this.onStateChange) {
+                this.onStateChange(this.getState());
+            }
+
+        }, 2500); // 2.5 seconds pause
     }
 
     private nextTurn() {

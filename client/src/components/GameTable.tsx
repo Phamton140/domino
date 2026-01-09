@@ -108,20 +108,29 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId, isPriva
         }
     }, [isMyTurn, hasValidMove, roomId]);
 
-    // Pass Notification Logic
+    // Pass Notification Logic (Center Overlay)
+    const [passNotification, setPassNotification] = useState<{ playerName: string } | null>(null);
+
     useEffect(() => {
         if (gameState.consecutivePasses > prevConsecutivePasses) {
-            const currentPlayerIdx = gameState.players.findIndex(p => p.id === gameState.currentTurnPlayerId);
-            // Previous player index (wrapping) - whoever just passed
-            const prevPlayerIdx = (currentPlayerIdx - 1 + gameState.players.length) % gameState.players.length;
-            const prevPlayer = gameState.players[prevPlayerIdx];
+            // In our new Server Logic, the turn has NOT changed yet when consecutivePasses increments.
+            // So the "currentTurnPlayerId" is actually the player who just passed.
+            // Unlike call previous logic where we looked back one step.
 
-            if (prevPlayer) {
-                setNotification({
-                    message: `El jugador ${prevPlayer.name} ha pasado`,
-                    type: 'info'
-                });
-                setTimeout(() => setNotification(null), 2000);
+            // Server process: 
+            // 1. Pass called -> consecutivePasses++ -> Broadcast (Paused)
+            // 2. Wait 2.5s
+            // 3. Next Turn -> Broadcast
+
+            // So here, gameState.currentTurnPlayerId IS the player who passed.
+            const passer = gameState.players.find(p => p.id === gameState.currentTurnPlayerId);
+
+            if (passer) {
+                setPassNotification({ playerName: passer.name });
+
+                // Clear notification after 2.5s (matching server delay)
+                const timer = setTimeout(() => setPassNotification(null), 2500);
+                return () => clearTimeout(timer);
             }
         }
         setPrevConsecutivePasses(gameState.consecutivePasses);
@@ -313,7 +322,18 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId, isPriva
                 </div>
             </div >
 
-            {/* Overlays */}
+            {/* Pass Notification Overlay */}
+            {passNotification && (
+                <div className="pass-notification-overlay">
+                    <div className="pass-notification-card">
+                        <span className="pass-icon">⛔</span>
+                        <h2>¡PASO!</h2>
+                        <div className="player-name">{passNotification.playerName} no tiene fichas</div>
+                    </div>
+                </div>
+            )}
+
+            {/* General Toasts */}
             {
                 notification && (
                     <div className={`notification-toast ${notification.type}`}>
