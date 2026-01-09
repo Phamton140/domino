@@ -364,29 +364,26 @@ html,
 /* Landscape Mobile specific */
 @media (max-height: 600px) {
     .board-area {
-        transform: translateY(-80px);
-        /* Less aggressive on short screens or it goes off top? */
-        /* Actually, if screen height is small (400px), moving up 150px removes top part. */
-        /* But we need to clear the bottom. */
-        /* Let's try centering better or simpler offset */
-        transform: translateY(-60px);
+        /* User requested significantly more space */
+        transform: translateY(-140px);
     }
 
     .player-me {
-        bottom: 10px;
-        /* Push player down more */
+        bottom: 5px;
+        /* Push player down to edge */
     }
 
     .my-hand-container {
-        padding: 4px 12px;
-        /* Smaller hand container */
+        padding: 4px 8px;
+        /* Compact hand */
+        gap: 6px;
     }
 }
 
 /* Broader mobile/tablet coverage */
 @media (max-width: 1000px) and (orientation: landscape) {
     .board-area {
-        transform: translateY(-100px);
+        transform: translateY(-140px);
     }
 }
 
