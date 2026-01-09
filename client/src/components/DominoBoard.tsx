@@ -342,12 +342,12 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
         if (board.length > 0 && !initialized && dim.w > 0) {
             // Mobile Adjustment:
             // - Horizontal: 40% (Shift Left)
-            // - Vertical: 38% (Shift Up, but not too much) -> Rough center of remaining space above hand
+            // - Vertical: 42% (Lowered from 38% to be more central, verifying clear of hand)
             const isMobile = dim.w < 1000;
             setViewState(prev => ({
                 ...prev,
                 x: isMobile ? dim.w * 0.4 : dim.w / 2,
-                y: isMobile ? dim.h * 0.38 : dim.h * 0.45,
+                y: isMobile ? dim.h * 0.42 : dim.h * 0.45,
                 scale: 1.0
             }));
             setInitialized(true);
