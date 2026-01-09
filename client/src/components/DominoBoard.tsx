@@ -340,14 +340,25 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
 
     useEffect(() => {
         if (board.length > 0 && !initialized && dim.w > 0) {
-            // Mobile Adjustment:
-            // - Horizontal: 40% (Shift Left)
-            // - Vertical: 40% (Midpoint) - 38% was too high, 45-50% was too low.
+            // CONSTANTS
             const isMobile = dim.w < 1000;
+            const TOP_BAR_HEIGHT = isMobile ? 50 : 80;
+            const BOTTOM_HAND_HEIGHT = isMobile ? 140 : 180; // Estimated height of player hand area
+
+            // Calculate Safe Playable Height
+            const safeHeight = dim.h - TOP_BAR_HEIGHT - BOTTOM_HAND_HEIGHT;
+
+            // Calculate Center of Safe Area relative to the top
+            // Y = Top_Offset + (Safe_Height / 2)
+            const safeCenterY = TOP_BAR_HEIGHT + (safeHeight / 2);
+
+            // Horizontal: Shift left on mobile to allow right-growth (40%), Center on Desktop (50%)
+            const safeCenterX = isMobile ? dim.w * 0.4 : dim.w / 2;
+
             setViewState(prev => ({
                 ...prev,
-                x: isMobile ? dim.w * 0.4 : dim.w / 2,
-                y: isMobile ? dim.h * 0.40 : dim.h * 0.45,
+                x: safeCenterX,
+                y: safeCenterY,
                 scale: 1.0
             }));
             setInitialized(true);
