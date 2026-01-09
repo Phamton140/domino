@@ -112,6 +112,7 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
             let lastIsDouble = centerIsDouble;
             let lastOrientation = centerIsDouble ? "vertical" : "horizontal";
 
+            // Process chain outward from center (Symmetric Logic for Left/Right)
             chain.forEach((item) => {
                 const { piece, matchVal } = item;
                 const isDouble = piece[0] === piece[1];
