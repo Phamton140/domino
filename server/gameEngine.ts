@@ -302,6 +302,17 @@ export class GameEngine {
         const [head, tail] = this.getOpenEnds();
         let placedPiece: Piece = [...piece]; // Clone
 
+        // Rule of Right End Priority (Doble Punta):
+        // If the piece matches BOTH ends, it MUST be played on the Right End (Tail).
+        // Check if piece matches head AND tail (and head != tail, or even if head == tail, right end priority applies)
+        const matchesHead = (piece[0] === head || piece[1] === head);
+        const matchesTail = (piece[0] === tail || piece[1] === tail);
+
+        if (matchesHead && matchesTail) {
+            console.log(`⚠️ Ambiguous move (Double Match) for [${piece[0]},${piece[1]}] - Forcing RIGHT END (Tail) rule`);
+            side = 'tail';
+        }
+
         if (side === 'head') {
             // Connecting to Head value at Index 0 [0]
             if (placedPiece[1] === head) {

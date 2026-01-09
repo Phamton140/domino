@@ -61,7 +61,7 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
 
         const GAP = 2;
         const MAX_HORIZONTAL = 6;
-        const results: any[] = [];
+        const results: { piece: Piece; x: number; y: number; width: number; height: number; orientation: "vertical" | "horizontal"; isAnchor?: boolean }[] = [];
 
         const centerIsDouble = centerPiece.piece[0] === centerPiece.piece[1];
         const cW = centerIsDouble ? 30 : 60;
@@ -75,21 +75,23 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
             isAnchor: true
         });
 
-        const layoutChain = (chain: any[], anchorX: number, anchorY: number, initialDirX: number) => {
+        const layoutChain = (chain: { piece: Piece, matchVal: number }[], anchorX: number, anchorY: number, chainType: 'left' | 'right') => {
             let lastX = anchorX;
             let lastY = anchorY;
             let lastW = cW;
             let lastH = cH;
 
-            let curDirX = initialDirX;
-            let curDirY = (initialDirX === 1) ? -1 : 1;
+            // Initial Directions
+            // Right Chain: Right (1,0) -> Up (0,-1) -> Left (-1,0)
+            // Left Chain: Left (-1,0) -> Down (0,1) -> Right (1,0)
+            let curDirX = chainType === 'right' ? 1 : -1;
+            let curDirY = 0;
 
-            let state = 0; // 0: Horizontal, 1: Vertical
-            let vCount = 0;
-            let vHasDouble = false;
+            let state = 0; // 0: First Horizontal, 1: Vertical, 2: Second Horizontal
+            let vMixedCount = 0; // Count mixed pieces in vertical segment
             let horzCount = 0;
 
-            // Track state of previous piece to handle transitions
+            // Track state of previous piece
             let lastState = 0;
             let lastIsDouble = centerIsDouble;
             let lastOrientation = centerIsDouble ? "vertical" : "horizontal";
@@ -98,82 +100,182 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                 const { piece, matchVal } = item;
                 const isDouble = piece[0] === piece[1];
 
-                // Check Turn Condition (Flexible)
-                if (state === 0 && horzCount >= MAX_HORIZONTAL && !isDouble && !lastIsDouble) {
-                    state = 1;
-                    vCount = 0;
-                    vHasDouble = false;
-                    horzCount = 0;
-                }
+                // --- STATE TRANSITIONS (Turns) ---
+                let nextState = state;
+                const canTurn = !isDouble && !lastIsDouble; // Doubles NEVER start a turn, Turn only on Mixed
 
-                // Determine Orientation & Size
-                let orientation: string;
+                if (state === 0) {
+                    // First Horizontal Leg
+                    if (horzCount >= MAX_HORIZONTAL && canTurn) {
+                        nextState = 1;
+                        // Set New Direction based on Chain Type
+                        if (chainType === 'right') {
+                            curDirX = 0; curDirY = -1; // UP
+                        } else {
+                            curDirX = 0; curDirY = 1;  // DOWN
+                        }
+                        horzCount = 0;
+                        vMixedCount = 0;
+                    } else {
+                        horzCount++;
+                    }
+                } else if (state === 1) {
+                    // Vertical Leg
+                    if (!isDouble) vMixedCount++;
+
+                    // Turn condition: 2 mixed pieces max (flexible to 3 if needed, user said 2 mixed or 3 if doubles)
+                    // Let's use a loose check: if we have 2 mixed pieces, try to turn
+                    if (vMixedCount >= 2 && canTurn) {
+                        nextState = 2;
+                        // Set New Direction
+                        if (chainType === 'right') {
+                            curDirX = -1; curDirY = 0; // LEFT
+                        } else {
+                            curDirX = 1; curDirY = 0;  // RIGHT
+                        }
+                        vMixedCount = 0;
+                    }
+                }
+                // state 2 continues indefinitely in the new horizontal direction
+
+                state = nextState;
+
+                // --- ORIENTATION & SIZE ---
+                let orientation: "vertical" | "horizontal";
                 if (isDouble) {
-                    // Doubles are ALWAYS perpendicular to the previous piece
+                    // Doubles are ALWAYS perpendicular
                     orientation = (lastOrientation === "horizontal") ? "vertical" : "horizontal";
                 } else {
-                    // Normal pieces follow the chain state (0=Horizontal, 1=Vertical)
-                    orientation = (state === 0) ? "horizontal" : "vertical";
+                    // Normal pieces follow the flow
+                    // If moving vertically (state 1), they are vertical. Else horizontal.
+                    orientation = (state === 1) ? "vertical" : "horizontal";
                 }
 
                 const w = (orientation === "horizontal") ? 60 : 30;
                 const h = (orientation === "horizontal") ? 30 : 60;
 
-                // Calculate Position (Center-to-Center)
+                // --- POSITION CALCULATION ---
                 let pX = 0, pY = 0;
-                let renderValues = [...piece];
-                let thisState = state;
+                let renderValues: Piece = [...piece] as Piece;
 
-                if (state === 0) {
-                    // Horizontal Flow
-                    const dist = (lastW / 2) + GAP + (w / 2);
-                    pX = lastX + (dist * curDirX);
-                    pY = lastY;
+                // Effective direction depends on state
+                // Note: curDirX/Y were updated above upon state entry
 
-                    // Return Offset logic
-                    if (lastState === 1 && !isDouble) {
-                        pY += (15 * curDirY);
+                if (state === 1) {
+                    // --- VERTICAL PLACEMENT ---
+                    if (lastState === 0) {
+                        // Just turned from Horizontal -> Vertical (The Corner Piece)
+                        // Align with the END of the previous piece (Corner Logic)
+
+                        const dist = (lastW / 2) + GAP + (w / 2);
+                        pX = lastX + (dist * (chainType === 'right' ? 1 : -1)); // Slight push out to clear logic? No, just stick to flow
+                        // Wait, if we turn UP, we stack on lastY. If we turn Left/Right...
+
+                        // Z-Turn Logic:
+                        // Previous was Horizontal. We are now Vertical.
+                        // We attach to the "side" of the previous piece if it was Mixed? 
+                        // User says: "las Mixtas pueden ser usadas como codos de giro".
+                        // Logic:
+                        // X position: Align with the end of previous piece
+                        pX = lastX + ((lastW / 2 + w / 2 + GAP) * (chainType === 'right' ? 1 : -1));
+                        // BUT we want to step back? No, standard flow adds to X.
+                        // Actually, for a corner, we usually effectively step X by (lastW/2 - w/2) + GAP?
+                        // Let's stick to standard flow:
+                        // If we are turning UP (Right Chain), we move Y up. X stays roughly same?
+
+                        // RE-THINK COORDINATES:
+                        // If turning UP:
+                        // New Y = lastY - (lastH/2 + h/2 + GAP)
+                        // New X needs to shift to align corners? 
+
+                        // Let's use standard explicit flow:
+                        // If we just entered state 1, this IS the corner piece.
+                        // It serves as the transition.
+                        // Position it "at the end" of the previous chain, but shifted in Y.
+
+                        // Standard "Next Spot" based on OLD direction would be:
+                        // pX = lastX + (dist * oldDirX)
+                        // But we want to turn.
+
+                        // SIMPLIFIED APPROACH:
+                        // Always calculate "ideal next center" based on CURRENT direction.
+                        // But for the FIRST piece of a new direction (the Pivot), we need strict placement relative to previous.
+
+                        // PIVOT CALCULATION (Horizontal -> Vertical)
+                        // Use the incoming X direction to offset X slightly (align edges)
+                        // Use the new Y direction to displace Y
+
+                        const incomingDirX = (chainType === 'right') ? 1 : -1;
+
+                        // X: Align Center-to-Center? No, End-to-Side?
+                        // If previous was Double, we wouldn't be here (constraint).
+                        // Previous was Mixed Horizontal.
+                        // Connect to its "end".
+
+                        // Actually, if we turn UP, we want the piece to sit ON TOP of the end of the previous one?
+                        // Or adjacent?
+                        // "Gira hacia arriba". visually L shape.
+
+                        // Let's place it at:
+                        // X: Same as previous X + (incomingDir * (lastW/2 - w/2)) ?? To align edges?
+                        // Let's just place it "at the end" in X, and displaced in Y.
+
+                        // X = lastX + (incomingDirX * (lastW/2 + w/2 + GAP)) -> This is straight line.
+                        // To turn, we want X to be: lastX + (incomingDirX * (lastW/2 - w/2))  (Align outer edge? or inner?)
+                        // User said: "Mixta... conectada por uno de sus lados laterales"
+
+                        // Let's try: Align Centers in X (roughly), displace in Y.
+                        // X: lastX + (incomingDirX * (lastW/2 - w/2)) 
+                        // Y: lastY + (curDirY * (lastH/2 + h/2 + GAP))
+
+                        pX = lastX + (incomingDirX * (lastW / 2 - w / 2));
+                        pY = lastY + (curDirY * (lastH / 2 + h / 2 + GAP));
+
+                        // Offset correction if needed?
+                    } else {
+                        // Continued Vertical or Double in Vertical
+                        const dist = (lastH / 2) + GAP + (h / 2);
+                        pY = lastY + (dist * curDirY);
+                        pX = lastX;
+                    }
+
+                    if (curDirY === 1) renderValues = (piece[0] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
+                    else renderValues = (piece[1] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
+
+                } else if (state === 2) {
+                    // --- SECOND HORIZONTAL (Return/Fold) ---
+                    if (lastState === 1) {
+                        // Pivot Vertical -> Horizontal
+                        // Incoming Y direction.
+                        // New X direction.
+
+                        const incomingDirY = (chainType === 'right') ? -1 : 1;
+
+                        // Y: Align with "end" of vertical piece involved in turn?
+                        // Y = lastY + (incomingDirY * (lastH/2 - h/2))
+                        // X = lastX + (curDirX * (lastW/2 + w/2 + GAP))
+
+                        pY = lastY + (incomingDirY * (lastH / 2 - h / 2));
+                        pX = lastX + (curDirX * (lastW / 2 + w / 2 + GAP));
+
+                    } else {
+                        // Standard Horizontal
+                        const dist = (lastW / 2) + GAP + (w / 2);
+                        pX = lastX + (dist * curDirX);
+                        pY = lastY;
                     }
 
                     if (curDirX === 1) renderValues = (piece[0] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
                     else renderValues = (piece[1] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
 
-                    horzCount++;
-
                 } else {
-                    // Vertical Flow
-                    if (vCount === 0) {
-                        // Corner Piece
-                        const dist = (lastW / 2) + GAP + (w / 2);
-                        pX = lastX + (dist * curDirX);
-                        pY = lastY;
+                    // --- FIRST HORIZONTAL (Standard) ---
+                    const dist = (lastW / 2) + GAP + (w / 2);
+                    pX = lastX + (dist * curDirX);
+                    pY = lastY;
 
-                        // Corner Offset Logic
-                        if (!isDouble) {
-                            pY += (15 * curDirY);
-                        }
-
-                        if (curDirY === 1) renderValues = (piece[0] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
-                        else renderValues = (piece[1] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
-
-                    } else {
-                        // Stack Piece
-                        const dist = (lastH / 2) + GAP + (h / 2);
-                        pX = lastX;
-                        pY = lastY + (dist * curDirY);
-
-                        if (curDirY === 1) renderValues = (piece[0] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
-                        else renderValues = (piece[1] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
-                    }
-
-                    vCount++;
-                    if (isDouble) vHasDouble = true;
-
-                    if (vCount >= (vHasDouble ? 3 : 2)) {
-                        state = 0;
-                        curDirX *= -1;
-                        horzCount = 0;
-                    }
+                    if (curDirX === 1) renderValues = (piece[0] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
+                    else renderValues = (piece[1] === matchVal) ? [piece[0], piece[1]] : [piece[1], piece[0]];
                 }
 
                 results.push({
@@ -188,14 +290,14 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                 lastY = pY;
                 lastW = w;
                 lastH = h;
-                lastState = thisState;
+                lastState = state;
                 lastIsDouble = isDouble;
                 lastOrientation = orientation;
             });
         };
 
-        layoutChain(rightChain, 0, 0, 1);
-        layoutChain(leftChain, 0, 0, -1);
+        layoutChain(rightChain, 0, 0, 'right');
+        layoutChain(leftChain, 0, 0, 'left');
 
         return results;
     }, [board]);
