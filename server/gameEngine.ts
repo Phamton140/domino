@@ -287,6 +287,7 @@ export class GameEngine {
                 }
             }
 
+            console.log(`Placed First Piece: isStarter=true, Team=${player.team}`);
             this.gameState.board.push({ piece: piece, isStarter: true, ownerTeam: player.team });
             player.hand.splice(pieceIdx, 1);
             this.gameState.consecutivePasses = 0;
