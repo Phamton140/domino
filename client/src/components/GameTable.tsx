@@ -10,9 +10,10 @@ interface Props {
     initialState: GameState;
     roomId: string;
     myId: string;
+    isPrivate: boolean;
 }
 
-export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
+export const GameTable: React.FC<Props> = ({ initialState, roomId, myId, isPrivate }) => {
     const [gameState, setGameState] = useState<GameState>(initialState);
     const [notification, setNotification] = useState<{ message: string, type: string } | null>(null);
     const [pendingPiece, setPendingPiece] = useState<Piece | null>(null);
@@ -233,23 +234,17 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
 
             <div className="info-bar">
                 {gameState.players.length === 4 && (
-                    <div className="scores" style={{
-                        background: 'rgba(0,0,0,0.4)',
-                        padding: '5px 10px',
-                        borderRadius: '8px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '2px',
-                        marginBottom: '4px' // Add spacing below scores
-                    }}>
+                    <div className="scoreboard">
                         <div className="score-item team-A">Team A: {gameState.teamScores?.A || 0}</div>
                         <div className="score-item team-B">Team B: {gameState.teamScores?.B || 0}</div>
                     </div>
                 )}
 
-                <div className="room-code-display">
-                    <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Sala: {roomId}</span>
-                </div>
+                {isPrivate && (
+                    <div className="room-code-display">
+                        <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Sala: {roomId}</span>
+                    </div>
+                )}
             </div>
 
             {/* Absolute Top Player */}

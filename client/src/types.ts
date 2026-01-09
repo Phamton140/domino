@@ -31,4 +31,10 @@ export interface Room {
     players: Player[];
     status: GameStatus;
     gameState: GameState | null;
+    config: {
+        isPrivate: boolean;
+        maxPlayers: number;
+        targetScore: number;
+        turnDuration: number;
+    };
 }

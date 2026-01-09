@@ -108,7 +108,7 @@ function App() {
   };
 
   if (activeGame && currentRoom) {
-    return <GameTable initialState={activeGame} roomId={currentRoom.id} myId={socket.id || ''} />;
+    return <GameTable initialState={activeGame} roomId={currentRoom.id} myId={socket.id || ''} isPrivate={currentRoom.config.isPrivate} />;
   }
 
   return (

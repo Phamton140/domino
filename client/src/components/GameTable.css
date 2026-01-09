@@ -59,18 +59,19 @@ html,
 /* === UI LAYER (Floating) === */
 
 /* Top Left: Score Board */
+/* Top Left: Score Board */
 .info-bar {
     position: absolute;
-    top: 24px;
-    left: 24px;
-    /* Relocated to Left */
+    top: 10px;
+    /* Closer to top */
+    left: 10px;
+    /* Closer to left */
     right: auto;
     z-index: 100;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
     align-items: flex-start;
-    /* Align Left */
 }
 
 .room-info {
@@ -79,9 +80,7 @@ html,
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
-    margin-left: 0;
-    margin-right: 4px;
-    text-align: left;
+    margin-left: 4px;
 }
 
 .scoreboard {
@@ -89,10 +88,17 @@ html,
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: var(--ui-glass-border);
-    border-radius: 16px;
-    padding: 12px 20px;
-    min-width: 140px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    border-radius: 50px;
+    /* Pill shape */
+    padding: 8px 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+
+    display: flex;
+    flex-direction: row;
+    /* Horizontal Layout */
+    gap: 20px;
+    /* Spacing between teams */
+    align-items: center;
 }
 
 .score-item {
