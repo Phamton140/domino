@@ -245,11 +245,12 @@ html,
     height: 28px;
 }
 
-/* --- LEFT LOCATION --- */
+/* --- LEFT LOCATION (Bottom Left) --- */
 .player-side.left {
-    top: 50%;
+    top: auto;
+    bottom: 24px;
     left: 24px;
-    transform: translateY(-50%);
+    transform: none;
     /* Wrapper positioning */
 }
 
@@ -268,11 +269,11 @@ html,
 }
 
 
-/* --- RIGHT LOCATION --- */
+/* --- RIGHT LOCATION (Top Right) --- */
 .player-side.right {
-    top: 50%;
+    top: 24px;
     right: 24px;
-    transform: translateY(-50%);
+    transform: none;
     /* Wrapper positioning */
 }
 
@@ -386,6 +387,7 @@ html,
     margin-bottom: 4px;
     background: linear-gradient(135deg, #fff 0%, #e0e0e0 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
     text-align: center;
