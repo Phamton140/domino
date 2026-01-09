@@ -322,11 +322,10 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId, isPriva
                 </div>
             </div >
 
-            {/* Pass Notification Overlay */}
             {passNotification && (
                 <div className="pass-notification-overlay">
                     <div className="pass-notification-card">
-                        <span className="pass-icon">⛔</span>
+                        <span className="pass-icon">😔</span>
                         <h2>¡PASO!</h2>
                         <div className="player-name">{passNotification.playerName} no tiene fichas</div>
                     </div>

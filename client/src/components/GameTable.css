@@ -354,6 +354,40 @@ html,
         top: 12px;
         left: 12px;
     }
+
+    /* Shift board up significantly to clear the bottom player area on mobile */
+    .board-area {
+        transform: translateY(-150px);
+    }
+}
+
+/* Landscape Mobile specific */
+@media (max-height: 600px) {
+    .board-area {
+        transform: translateY(-80px);
+        /* Less aggressive on short screens or it goes off top? */
+        /* Actually, if screen height is small (400px), moving up 150px removes top part. */
+        /* But we need to clear the bottom. */
+        /* Let's try centering better or simpler offset */
+        transform: translateY(-60px);
+    }
+
+    .player-me {
+        bottom: 10px;
+        /* Push player down more */
+    }
+
+    .my-hand-container {
+        padding: 4px 12px;
+        /* Smaller hand container */
+    }
+}
+
+/* Broader mobile/tablet coverage */
+@media (max-width: 1000px) and (orientation: landscape) {
+    .board-area {
+        transform: translateY(-100px);
+    }
 }
 
 /* === MODAL OVERLAYS (End Hand / Game) === */
@@ -466,7 +500,8 @@ html,
 
 /* === PASS NOTIFICATION (Center Overlay) === */
 .pass-notification-overlay {
-    position: absolute;
+    position: fixed;
+    /* Fixed ensures it stays centered on SCREEN, ignoring parent transforms */
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
