@@ -109,7 +109,6 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
 
             // Track state of previous piece
             let lastState = 0;
-            let lastIsDouble = centerIsDouble;
             let lastOrientation = centerIsDouble ? "vertical" : "horizontal";
 
             // Process chain outward from center (Symmetric Logic for Left/Right)
@@ -119,7 +118,7 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
 
                 // --- STATE TRANSITIONS (Turns) ---
                 let nextState = state;
-                const canTurn = !isDouble && !lastIsDouble; // Doubles NEVER start a turn, Turn only on Mixed
+
 
                 if (state === 0) {
                     // First Horizontal Leg
@@ -129,7 +128,8 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
 
                     // Turn Condition: Max 5 tiles TOTAL (Mixed + Doubles)
                     // Must respect turn rules (no double pivot)
-                    if ((hMixedCount + hDoubleCount) >= 5 && canTurn) {
+                    // RELAXATION: If we reached the limit, allow turn even if last was Double (as long as THIS is mixed)
+                    if ((hMixedCount + hDoubleCount) >= 5 && !isDouble) {
                         nextState = 1;
                         // Set New Direction based on Chain Type
                         if (chainType === 'right') {
@@ -145,8 +145,12 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                     vTotalCount++;
 
                     // Turn condition: Strictly 2 pieces minimum (so turn happens on the 3rd piece -> count > 2)
-                    // Must respect turn rules (no double pivot)
-                    if (vTotalCount >= 2 && canTurn) {
+                    // If the 2nd piece was Double, we STILL turn (user request), so we ignore lastIsDouble here.
+                    // We only require current piece to be !isDouble to start the new leg? 
+                    // Actually, if current is Double, it would be Vertical in Horizontal State.
+                    // Let's assume strict turn requires Mixed current piece for simplicity and safety, 
+                    // but allow lastIsDouble.
+                    if (vTotalCount >= 2 && !isDouble) {
                         nextState = 2;
                         // Set New Direction
                         if (chainType === 'right') {
@@ -312,7 +316,6 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                 lastW = w;
                 lastH = h;
                 lastState = state;
-                lastIsDouble = isDouble;
                 lastOrientation = orientation;
             });
         };
