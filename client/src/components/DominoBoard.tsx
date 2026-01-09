@@ -340,12 +340,14 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
 
     useEffect(() => {
         if (board.length > 0 && !initialized && dim.w > 0) {
-            // Heuristic for mobile: Shift center left (40% width) to allow more space for right-growth
+            // Heuristic for mobile: 
+            // - Shift CENTER LEFT (40% width) to allow more space for right-growth
+            // - Shift UP (30% height) to avoid bottom player hand [Fixes clipping]
             const isMobile = dim.w < 1000;
             setViewState(prev => ({
                 ...prev,
                 x: isMobile ? dim.w * 0.4 : dim.w / 2,
-                y: dim.h * 0.45,
+                y: isMobile ? dim.h * 0.3 : dim.h * 0.45,
                 scale: 1.0
             }));
             setInitialized(true);

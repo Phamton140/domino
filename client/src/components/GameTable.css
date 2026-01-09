@@ -363,10 +363,8 @@ html,
 
 /* Landscape Mobile specific */
 @media (max-height: 600px) {
-    .board-area {
-        /* User requested significantly more space */
-        transform: translateY(-140px);
-    }
+    /* REMOVED: transform: translateY(...) - caused clipping */
+    /* Handled in JS logic now */
 
     .player-me {
         bottom: 5px;
@@ -382,9 +380,7 @@ html,
 
 /* Broader mobile/tablet coverage */
 @media (max-width: 1000px) and (orientation: landscape) {
-    .board-area {
-        transform: translateY(-140px);
-    }
+    /* REMOVED: transform: translateY(...) */
 }
 
 /* === MODAL OVERLAYS (End Hand / Game) === */
