@@ -94,12 +94,12 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
             let lastIsDouble = centerIsDouble;
             let lastOrientation = centerIsDouble ? "vertical" : "horizontal";
 
-            chain.forEach((item, index) => {
+            chain.forEach((item) => {
                 const { piece, matchVal } = item;
                 const isDouble = piece[0] === piece[1];
 
                 // Check Turn Condition (Flexible)
-                if (state === 0 && horzCount >= MAX_HORIZONTAL && !isDouble) {
+                if (state === 0 && horzCount >= MAX_HORIZONTAL && !isDouble && !lastIsDouble) {
                     state = 1;
                     vCount = 0;
                     vHasDouble = false;
