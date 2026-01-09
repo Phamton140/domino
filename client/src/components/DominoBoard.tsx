@@ -359,7 +359,13 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                 {positionedPieces.map((item) => (
                     <div key={`${item.piece[0]}-${item.piece[1]}`} className="piece-wrapper" style={{ transform: `translate(${item.x}px, ${item.y}px)`, width: item.width, height: item.height }}>
                         <div className="piece-animator">
-                            <DominoPiece values={item.piece} orientation={item.orientation} size="medium" disabled />
+                            <DominoPiece
+                                values={item.piece}
+                                orientation={item.orientation}
+                                size="medium"
+                                disabled
+                                className={item.isAnchor ? 'starter-piece' : ''}
+                            />
                         </div>
                     </div>
                 ))}
