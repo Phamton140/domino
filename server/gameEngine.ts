@@ -287,7 +287,7 @@ export class GameEngine {
                 }
             }
 
-            this.gameState.board.push({ piece: piece });
+            this.gameState.board.push({ piece: piece, isStarter: true });
             player.hand.splice(pieceIdx, 1);
             this.gameState.consecutivePasses = 0;
 

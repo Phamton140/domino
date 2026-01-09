@@ -18,6 +18,7 @@ export interface GameState {
         // We might need to track how it was placed (left/right) for UI, 
         // but specific logic can handle head/tail. 
         // For now, simpler is better.
+        isStarter?: boolean;
     }[];
     players: Player[];
     currentTurnPlayerId: string;

@@ -4,7 +4,7 @@ import type { Piece } from '../types';
 import './DominoBoard.css';
 
 interface Props {
-    board: { piece: Piece }[];
+    board: { piece: Piece, isStarter?: boolean }[];
 }
 
 export const DominoBoard: React.FC<Props> = ({ board }) => {
@@ -28,15 +28,28 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
         let anchorIndex = -1;
 
         if (anchorRef.current) {
-            anchorIndex = board.findIndex(b =>
+            // Try to find the same piece by value first (persistence)
+            const idx = board.findIndex(b =>
                 b.piece[0] === anchorRef.current![0] && b.piece[1] === anchorRef.current![1]
             );
+            if (idx !== -1) anchorIndex = idx;
         }
 
+        // If not found or not set, look for explicit "isStarter" flag from server
+        if (anchorIndex === -1) {
+            const starterIndex = board.findIndex(b => b.isStarter);
+            if (starterIndex !== -1) {
+                anchorIndex = starterIndex;
+            }
+        }
+
+        // Ultimate fallback (should rarely happen if isStarter is working)
         if (anchorIndex === -1) {
             anchorIndex = Math.floor(board.length / 2);
-            anchorRef.current = board[anchorIndex].piece;
         }
+
+        // Update ref for next render consistency
+        anchorRef.current = board[anchorIndex].piece;
 
         const centerPiece = board[anchorIndex];
 
@@ -88,7 +101,7 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
             let curDirY = 0;
 
             let state = 0; // 0: First Horizontal, 1: Vertical, 2: Second Horizontal
-            let vMixedCount = 0; // Count mixed pieces in vertical segment
+            let vTotalCount = 0; // Count ALL pieces in vertical segment
 
             // Horizontal Counters
             let hMixedCount = 0;
@@ -113,8 +126,9 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                     if (isDouble) hDoubleCount++;
                     else hMixedCount++;
 
-                    // Turn Condition: 7 Mixed OR 4 Doubles
-                    if ((hMixedCount >= 7 || hDoubleCount >= 4) && canTurn) {
+                    // Turn Condition: Max 5 tiles TOTAL (Mixed + Doubles)
+                    // Must respect turn rules (no double pivot)
+                    if ((hMixedCount + hDoubleCount) >= 5 && canTurn) {
                         nextState = 1;
                         // Set New Direction based on Chain Type
                         if (chainType === 'right') {
@@ -122,16 +136,16 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                         } else {
                             curDirX = 0; curDirY = 1;  // DOWN
                         }
-                        // Reset counters for next state if needed (though state 1 uses different ones)
-                        vMixedCount = 0;
+                        // Reset counters for next state
+                        vTotalCount = 0;
                     }
                 } else if (state === 1) {
                     // Vertical Leg
-                    if (!isDouble) vMixedCount++;
+                    vTotalCount++;
 
-                    // Turn condition: 2 mixed pieces max (flexible to 3 if needed, user said 2 mixed or 3 if doubles)
-                    // Let's use a loose check: if we have 2 mixed pieces, try to turn
-                    if (vMixedCount >= 2 && canTurn) {
+                    // Turn condition: Strictly 2 pieces minimum (so turn happens on the 3rd piece -> count > 2)
+                    // Must respect turn rules (no double pivot)
+                    if (vTotalCount >= 2 && canTurn) {
                         nextState = 2;
                         // Set New Direction
                         if (chainType === 'right') {
@@ -139,7 +153,7 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                         } else {
                             curDirX = 1; curDirY = 0;  // RIGHT
                         }
-                        vMixedCount = 0;
+                        vTotalCount = 0;
                     }
                 }
                 // state 2 continues indefinitely in the new horizontal direction
