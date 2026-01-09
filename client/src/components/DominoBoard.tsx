@@ -52,7 +52,6 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
         anchorRef.current = board[anchorIndex].piece;
 
         const centerPiece = board[anchorIndex];
-        console.log("DominoBoard Layout: Center Piece:", centerPiece, "OwnerTeam:", centerPiece.ownerTeam);
 
         const leftChain: { piece: Piece, matchVal: number }[] = [];
         const rightChain: { piece: Piece, matchVal: number }[] = [];
