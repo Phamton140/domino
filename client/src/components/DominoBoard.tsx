@@ -130,8 +130,8 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                     pX = lastX + (dist * curDirX);
                     pY = lastY;
 
-                    // Return Offset logic stays same
-                    if (lastState === 1 && !lastIsDouble) {
+                    // Return Offset logic
+                    if (lastState === 1 && !isDouble) {
                         pY += (15 * curDirY);
                     }
 
@@ -149,9 +149,7 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                         pY = lastY;
 
                         // Corner Offset Logic
-                        // Only apply L-shape offset if BOTH are Normal pieces.
-                        // If any is a Double, connect Center-to-Center ("Middle Line").
-                        if (!isDouble && !lastIsDouble) {
+                        if (!isDouble) {
                             pY += (15 * curDirY);
                         }
 
