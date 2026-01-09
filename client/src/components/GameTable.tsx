@@ -292,7 +292,6 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
                     {myPlayer?.hand.map((piece, i) => {
                         const head = gameState.board[0]?.piece[0];
                         const tail = gameState.board[gameState.board.length - 1]?.piece[1];
-                        const isDouble = piece[0] === piece[1];
                         const boardLen = gameState.board.length;
 
                         let isValid = false;
@@ -300,14 +299,10 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId }) => {
                         if (boardLen === 0) {
                             isValid = gameState.handNumber === 1 ? (piece[0] === 6 && piece[1] === 6) : true;
                         } else {
-                            // Regla: No se puede girar con un doble si llegamos al límite de 7 (índice 6)
+                            // Validar simplemente si coincide con alguna punta (sin restricciones artificiales de visualización)
                             const canPlayHead = piece[0] === head || piece[1] === head;
                             const canPlayTail = piece[0] === tail || piece[1] === tail;
-
-                            // Si una punta está en el límite de 7, y la pieza es doble, bloqueamos ese lado
-                            // Aquí simplificamos: si toca girar, los dobles se deshabilitan
-                            const isAtLimit = boardLen >= 7;
-                            isValid = (canPlayHead || canPlayTail) && !(isAtLimit && isDouble);
+                            isValid = (canPlayHead || canPlayTail);
                         }
 
                         return (
