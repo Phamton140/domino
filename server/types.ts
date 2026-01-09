@@ -19,6 +19,7 @@ export interface GameState {
         // but specific logic can handle head/tail. 
         // For now, simpler is better.
         isStarter?: boolean;
+        ownerTeam?: 'A' | 'B';
     }[];
     players: Player[];
     currentTurnPlayerId: string;

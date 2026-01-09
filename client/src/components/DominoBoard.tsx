@@ -4,7 +4,7 @@ import type { Piece } from '../types';
 import './DominoBoard.css';
 
 interface Props {
-    board: { piece: Piece, isStarter?: boolean }[];
+    board: { piece: Piece, isStarter?: boolean, ownerTeam?: 'A' | 'B' }[];
 }
 
 export const DominoBoard: React.FC<Props> = ({ board }) => {
@@ -74,7 +74,7 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
 
         const GAP = 2;
 
-        const results: { piece: Piece; x: number; y: number; width: number; height: number; orientation: "vertical" | "horizontal"; isAnchor?: boolean }[] = [];
+        const results: { piece: Piece; x: number; y: number; width: number; height: number; orientation: "vertical" | "horizontal"; isAnchor?: boolean; ownerTeam?: 'A' | 'B' }[] = [];
 
         const centerIsDouble = centerPiece.piece[0] === centerPiece.piece[1];
         const cW = centerIsDouble ? 30 : 60;
@@ -85,7 +85,8 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
             x: -cW / 2, y: -cH / 2,
             width: cW, height: cH,
             orientation: centerIsDouble ? "vertical" : "horizontal",
-            isAnchor: true
+            isAnchor: true,
+            ownerTeam: centerPiece.ownerTeam
         });
 
         const layoutChain = (chain: { piece: Piece, matchVal: number }[], anchorX: number, anchorY: number, chainType: 'left' | 'right') => {
@@ -364,7 +365,7 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                                 orientation={item.orientation}
                                 size="medium"
                                 disabled
-                                className={item.isAnchor ? 'starter-piece' : ''}
+                                className={`${item.isAnchor ? 'starter-piece' : ''} ${item.ownerTeam ? `starter-team-${item.ownerTeam}` : ''}`}
                             />
                         </div>
                     </div>

@@ -287,7 +287,7 @@ export class GameEngine {
                 }
             }
 
-            this.gameState.board.push({ piece: piece, isStarter: true });
+            this.gameState.board.push({ piece: piece, isStarter: true, ownerTeam: player.team });
             player.hand.splice(pieceIdx, 1);
             this.gameState.consecutivePasses = 0;
 
@@ -323,7 +323,7 @@ export class GameEngine {
             } else {
                 return false;
             }
-            this.gameState.board.unshift({ piece: placedPiece });
+            this.gameState.board.unshift({ piece: placedPiece, ownerTeam: player.team });
         } else {
             // Connecting to Tail value at Index Last [1]
             if (placedPiece[0] === tail) {
@@ -334,7 +334,7 @@ export class GameEngine {
             } else {
                 return false;
             }
-            this.gameState.board.push({ piece: placedPiece });
+            this.gameState.board.push({ piece: placedPiece, ownerTeam: player.team });
         }
 
         player.hand.splice(pieceIdx, 1);

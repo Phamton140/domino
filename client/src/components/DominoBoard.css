@@ -66,9 +66,21 @@
     will-change: transform, opacity;
 }
 
-/* Highlight the starter piece (soft yellow) */
+/* Default Fallback (Yellow) */
 .domino-piece.starter-piece {
     box-shadow: 0 0 15px 4px rgba(255, 223, 0, 0.5) !important;
     border: 1px solid rgba(255, 223, 0, 0.8) !important;
     z-index: 10;
+}
+
+/* Team A: Red Glow */
+.domino-piece.starter-team-A {
+    box-shadow: 0 0 15px 4px rgba(255, 50, 50, 0.6) !important;
+    border: 2px solid rgba(255, 50, 50, 0.8) !important;
+}
+
+/* Team B: Blue Glow */
+.domino-piece.starter-team-B {
+    box-shadow: 0 0 15px 4px rgba(50, 100, 255, 0.7) !important;
+    border: 2px solid rgba(50, 100, 255, 0.8) !important;
 }

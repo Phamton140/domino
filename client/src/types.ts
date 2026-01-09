@@ -13,7 +13,7 @@ export type GameStatus = 'waiting' | 'playing' | 'finished';
 
 export interface GameState {
     players: Player[];
-    board: { piece: Piece, isStarter?: boolean }[];
+    board: { piece: Piece, isStarter?: boolean, ownerTeam?: 'A' | 'B' }[];
     currentTurnPlayerId: string;
     turnDeadline: number;
     handNumber: number;
