@@ -60,7 +60,7 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
         }
 
         const GAP = 2;
-        const MAX_HORIZONTAL = 6;
+
         const results: { piece: Piece; x: number; y: number; width: number; height: number; orientation: "vertical" | "horizontal"; isAnchor?: boolean }[] = [];
 
         const centerIsDouble = centerPiece.piece[0] === centerPiece.piece[1];
@@ -89,7 +89,10 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
 
             let state = 0; // 0: First Horizontal, 1: Vertical, 2: Second Horizontal
             let vMixedCount = 0; // Count mixed pieces in vertical segment
-            let horzCount = 0;
+
+            // Horizontal Counters
+            let hMixedCount = 0;
+            let hDoubleCount = 0;
 
             // Track state of previous piece
             let lastState = 0;
@@ -106,7 +109,12 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
 
                 if (state === 0) {
                     // First Horizontal Leg
-                    if (horzCount >= MAX_HORIZONTAL && canTurn) {
+                    // Update counters
+                    if (isDouble) hDoubleCount++;
+                    else hMixedCount++;
+
+                    // Turn Condition: 7 Mixed OR 4 Doubles
+                    if ((hMixedCount >= 7 || hDoubleCount >= 4) && canTurn) {
                         nextState = 1;
                         // Set New Direction based on Chain Type
                         if (chainType === 'right') {
@@ -114,10 +122,8 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                         } else {
                             curDirX = 0; curDirY = 1;  // DOWN
                         }
-                        horzCount = 0;
+                        // Reset counters for next state if needed (though state 1 uses different ones)
                         vMixedCount = 0;
-                    } else {
-                        horzCount++;
                     }
                 } else if (state === 1) {
                     // Vertical Leg
