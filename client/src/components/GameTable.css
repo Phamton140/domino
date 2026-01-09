@@ -456,90 +456,91 @@ html,
     from {
         opacity: 0;
         backdrop-filter: blur(0px);
-
-        to {
-            opacity: 1;
-            backdrop-filter: blur(12px);
-        }
     }
 
-    /* === PASS NOTIFICATION (Center Overlay) === */
-    .pass-notification-overlay {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 1000;
-        pointer-events: none;
-        /* Let clicks pass through if needed, though usually blocking is fine */
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        animation: passEnter 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    to {
+        opacity: 1;
+        backdrop-filter: blur(12px);
+    }
+}
+
+/* === PASS NOTIFICATION (Center Overlay) === */
+.pass-notification-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    pointer-events: none;
+    /* Let clicks pass through if needed, though usually blocking is fine */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: passEnter 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.pass-notification-card {
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    padding: 24px 48px;
+    border-radius: 24px;
+    text-align: center;
+    min-width: 300px;
+}
+
+.pass-notification-card h2 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+    /* Red-Orange Warning */
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.pass-notification-card .player-name {
+    font-size: 1.5rem;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.pass-icon {
+    font-size: 4rem;
+    margin-bottom: 16px;
+    display: block;
+    animation: shake 0.5s ease-in-out;
+}
+
+@keyframes passEnter {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5);
     }
 
-    .pass-notification-card {
-        background: rgba(0, 0, 0, 0.85);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 2px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-        padding: 24px 48px;
-        border-radius: 24px;
-        text-align: center;
-        min-width: 300px;
+    100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: rotate(0deg);
     }
 
-    .pass-notification-card h2 {
-        font-size: 2.5rem;
-        font-weight: 800;
-        margin: 0 0 8px 0;
-        background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
-        /* Red-Orange Warning */
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-        text-transform: uppercase;
-        letter-spacing: 2px;
+    25% {
+        transform: rotate(-10deg);
     }
 
-    .pass-notification-card .player-name {
-        font-size: 1.5rem;
-        color: #ffffff;
-        font-weight: 600;
+    75% {
+        transform: rotate(10deg);
     }
-
-    .pass-icon {
-        font-size: 4rem;
-        margin-bottom: 16px;
-        display: block;
-        animation: shake 0.5s ease-in-out;
-    }
-
-    @keyframes passEnter {
-        0% {
-            opacity: 0;
-            transform: translate(-50%, -50%) scale(0.5);
-        }
-
-        100% {
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
-        }
-    }
-
-    @keyframes shake {
-
-        0%,
-        100% {
-            transform: rotate(0deg);
-        }
-
-        25% {
-            transform: rotate(-10deg);
-        }
-
-        75% {
-            transform: rotate(10deg);
-        }
-    }
+}
