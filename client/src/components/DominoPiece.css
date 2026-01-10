@@ -132,9 +132,15 @@
     z-index: 100;
 }
 
-/* Estado Deshabilitado (Para fichas en el tablero) */
+/* Estado Deshabilitado (Para fichas en el tablero o mano que no se pueden jugar) */
 .domino-piece.disabled {
     cursor: default;
+    /* User requested normal colors, so no opacity/grayscale */
+    /* opacity: 0.5; */
+    /* filter: grayscale(100%); */
+    pointer-events: none;
+    /* No clickable, no hover states */
+    box-shadow: none;
 }
 
 /* Fichas del oponente (Ocultas) */

@@ -69,20 +69,20 @@
 /* Default Fallback (Yellow) */
 .domino-piece.starter-piece {
     box-shadow: 0 0 15px 4px rgba(255, 223, 0, 0.5) !important;
-    border: 1px solid rgba(255, 223, 0, 0.8) !important;
+    outline: 1px solid rgba(255, 223, 0, 0.8);
     z-index: 10;
 }
 
 /* Team A: Blue Glow (Matches #2196f3) */
 .domino-piece.starter-team-A {
     box-shadow: 0 0 20px 4px rgba(33, 150, 243, 0.6) !important;
-    border: 2px solid rgba(33, 150, 243, 0.9) !important;
+    outline: 2px solid rgba(33, 150, 243, 0.9);
     z-index: 11 !important;
 }
 
 /* Team B: Red Glow (Matches #f44336) */
 .domino-piece.starter-team-B {
     box-shadow: 0 0 20px 4px rgba(244, 67, 54, 0.6) !important;
-    border: 2px solid rgba(244, 67, 54, 0.9) !important;
+    outline: 2px solid rgba(244, 67, 54, 0.9);
     z-index: 11 !important;
 }

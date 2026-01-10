@@ -27,6 +27,7 @@ app.get('/', (req: Request, res: Response) => {
     res.send('Domino Server is running');
 });
 
-server.listen(port, () => {
-    console.log(`[server]: Server is running at http://localhost:${port}`);
+server.listen(port as number, '0.0.0.0', () => {
+    console.log(`[server]: 🟢 LIVE on http://0.0.0.0:${port} (All Interfaces)`);
+    console.log(`[network]: Connect your phone to http://192.168.1.13:${port}`);
 });
