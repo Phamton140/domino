@@ -7,6 +7,11 @@ export class GameEngine {
     private readonly TURN_DURATION: number; // Will be set from config or default to 15000ms
     private onStateChange?: (state: GameState) => void; // Callback for state updates
 
+    private pendingStartBonus?: {
+        team: string;
+        points: number;
+    };
+
     constructor(players: Player[], config: RoomConfig, onStateChange?: (state: GameState) => void) {
         // Use config turn duration or default to 15 seconds
         this.TURN_DURATION = (config.turnDuration || 15) * 1000;
@@ -48,6 +53,7 @@ export class GameEngine {
         this.gameState.consecutivePasses = 0;
         this.gameState.handWinnerId = undefined; // Reset hand winner
         this.gameState.winReason = undefined;
+        this.pendingStartBonus = undefined; // Reset start bonus logic
         // winnerTeam persists if Match Won? No, if Match Won, we shouldn't be here or we restart match.
 
         this.gameState.players.forEach(p => {
@@ -340,6 +346,20 @@ export class GameEngine {
         player.hand.splice(pieceIdx, 1);
         this.gameState.consecutivePasses = 0;
 
+        // --- START BONUS AWARD ---
+        if (this.pendingStartBonus) {
+            // Check if this player belongs to the target team (should be partner)
+            if (player.team === this.pendingStartBonus.team) {
+                console.log(`🎉 START BONUS AWARDED! +${this.pendingStartBonus.points} points for Team ${player.team}`);
+                this.gameState.teamScores[player.team] += this.pendingStartBonus.points;
+                // Note: We don't end the hand, just add points.
+                // We should notify clients of score update
+                // Effectively done by nextTurn() broadcast or if we force one here.
+            }
+            this.pendingStartBonus = undefined; // Consumed
+        }
+        // --- END BONUS AWARD ---
+
         // Check Win / Capicúa
         if (player.hand.length === 0) {
             // Capicúa check: The piece played matched BOTH ends of the board.
@@ -384,6 +404,27 @@ export class GameEngine {
             clearTimeout(this.timer);
             this.timer = null;
         }
+
+        // --- START BONUS LOGIC ---
+        // 1. If we had a pending bonus and the PARTNER also passes, void it.
+        if (this.pendingStartBonus) {
+            console.log(`❌ Start Bonus VOIDED: Partner also passed.`);
+            this.pendingStartBonus = undefined;
+        }
+        // 2. If it's the very first play (Board has 1 piece), and the NEXT player passes.
+        else if (this.gameState.board.length === 1) {
+            const startPiece = this.gameState.board[0];
+            const isDouble = startPiece.piece[0] === startPiece.piece[1];
+            const points = isDouble ? 30 : 60;
+
+            console.log(`✨ Potential Start Bonus Detected! Started with ${isDouble ? 'Double' : 'Mixed'}. If partner plays, +${points}`);
+
+            this.pendingStartBonus = {
+                team: startPiece.ownerTeam,
+                points: points
+            };
+        }
+        // --- END BONUS LOGIC ---
 
         this.gameState.consecutivePasses++;
         console.log(`Pass count: ${this.gameState.consecutivePasses}`);
