@@ -449,6 +449,10 @@ export class GameEngine {
             if (this.gameState.consecutivePasses === 4) {
                 console.log(`🔒 TRANQUE - All players passed`);
                 this.handleTranque();
+                // FIX: Broadcast the result (Tranque/Win) so clients see the overlay
+                if (this.onStateChange) {
+                    this.onStateChange(this.getState());
+                }
                 return;
             }
 

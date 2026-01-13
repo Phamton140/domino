@@ -89,6 +89,11 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId, isPriva
         socket.on('notification', onNotification);
         socket.on('ready_status', onReadyStatus);
 
+        socket.on('error', (err: { message: string }) => {
+            console.error("Socket Error:", err);
+            setNotification({ message: `Error: ${err.message}`, type: 'error' });
+        });
+
         return () => {
             socket.off('game_update', onGameUpdate);
             socket.off('notification', onNotification);
