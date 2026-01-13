@@ -420,7 +420,7 @@ export class GameEngine {
             console.log(`✨ Potential Start Bonus Detected! Started with ${isDouble ? 'Double' : 'Mixed'}. If partner plays, +${points}`);
 
             this.pendingStartBonus = {
-                team: startPiece.ownerTeam,
+                team: startPiece.ownerTeam || 'A', // Fallback to 'A' (should not happen for placed pieces)
                 points: points
             };
         }
@@ -445,11 +445,11 @@ export class GameEngine {
                 // Check if current player has valid moves
                 if (currentPlayer && this.findAnyValidMove(currentPlayer)) {
                     // Check team score - Pase Redondo does NOT apply if team has 170+ points
-                    const teamPlayers = this.gameState.players.filter(p => p.team === currentPlayer.team);
-                    const teamScore = teamPlayers.reduce((sum, p) => sum + p.score, 0);
+                    // Usage of teamScores is the source of truth
+                    const teamScore = this.gameState.teamScores[currentPlayer.team as 'A' | 'B'];
 
                     if (teamScore >= 170) {
-                        console.log(`⚠️ Pase Redondo NOT applied - Team ${currentPlayer.team} has ${teamScore} points (170+ limit)`);
+                        console.log(`⚠️ Pase Redondo DETECTED but NOT APPLIED - Team ${currentPlayer.team} has ${teamScore} points (170+ limit)`);
                         // Reset consecutive passes but no bonus
                         this.gameState.consecutivePasses = 0;
                         this.startTurnTimer();
@@ -462,6 +462,8 @@ export class GameEngine {
                     console.log(`🎉 PASE REDONDO! Player ${currentPlayer.name} can still play, +30 bonus`);
 
                     // Award +30 to the team
+                    // Re-fetch team players for individual score update
+                    const teamPlayers = this.gameState.players.filter(p => p.team === currentPlayer.team);
                     teamPlayers.forEach(p => p.score += 30);
 
                     // Notify about Pase Redondo
