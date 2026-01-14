@@ -371,7 +371,11 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
 
 
 
-    const handleMouseDown = (e: React.MouseEvent) => setViewState(p => ({ ...p, isDragging: true, startX: e.clientX - p.x, startY: e.clientY - p.y }));
+    const handleMouseDown = (e: React.MouseEvent) => {
+        // Disable drag on desktop (width > 1024px)
+        if (window.innerWidth > 1024) return;
+        setViewState(p => ({ ...p, isDragging: true, startX: e.clientX - p.x, startY: e.clientY - p.y }));
+    };
     const handleMouseMove = (e: React.MouseEvent) => { if (viewState.isDragging) setViewState(p => ({ ...p, x: e.clientX - p.startX, y: e.clientY - p.startY })); };
     const handleMouseUp = () => setViewState(p => ({ ...p, isDragging: false }));
 
