@@ -40,6 +40,21 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
             const starterIndex = board.findIndex(b => b.isStarter);
             if (starterIndex !== -1) {
                 anchorIndex = starterIndex;
+            } else {
+                // Fallback: Try to find Double 6 (Standard Start)
+                const d6Index = board.findIndex(b => b.piece[0] === 6 && b.piece[1] === 6);
+                if (d6Index !== -1) {
+                    anchorIndex = d6Index;
+                } else {
+                    // Fallback: Highest Double (5-5, 4-4...)
+                    for (let d = 5; d >= 0; d--) {
+                        const dIdx = board.findIndex(b => b.piece[0] === d && b.piece[1] === d);
+                        if (dIdx !== -1) {
+                            anchorIndex = dIdx;
+                            break;
+                        }
+                    }
+                }
             }
         }
 
@@ -336,34 +351,35 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
     }, [board]);
 
     const [viewState, setViewState] = useState({ x: 0, y: 0, scale: 1.0, isDragging: false, startX: 0, startY: 0 });
-    const [initialized, setInitialized] = useState(false);
 
+    // --- STATIC CENTERING LOGIC ---
     useEffect(() => {
-        if (board.length > 0 && !initialized && dim.w > 0) {
-            // CONSTANTS
-            const isMobile = dim.w < 1000;
-            const TOP_BAR_HEIGHT = isMobile ? 50 : 80;
-            const BOTTOM_HAND_HEIGHT = isMobile ? 140 : 180; // Estimated height of player hand area
+        if (!dim.w || !dim.h) return;
 
-            // Calculate Safe Playable Height
-            const safeHeight = dim.h - TOP_BAR_HEIGHT - BOTTOM_HAND_HEIGHT;
+        // Strict geometric centering as requested
+        const targetX = dim.w / 2;
+        const targetY = dim.h / 2;
 
-            // Calculate Center of Safe Area relative to the top
-            // Y = Top_Offset + (Safe_Height / 2)
-            const safeCenterY = TOP_BAR_HEIGHT + (safeHeight / 2);
+        setViewState(prev => ({
+            ...prev,
+            x: targetX,
+            y: targetY,
+            scale: 1.0
+        }));
 
-            // Horizontal: Shift left on mobile to allow right-growth (40%), Center on Desktop (50%)
-            const safeCenterX = isMobile ? dim.w * 0.4 : dim.w / 2;
+    }, [dim.w, dim.h]);
 
-            setViewState(prev => ({
-                ...prev,
-                x: safeCenterX,
-                y: safeCenterY,
-                scale: 1.0
-            }));
-            setInitialized(true);
-        }
-    }, [dim, board.length, initialized]);
+    const recenterBoard = () => {
+        if (!dim.w || !dim.h) return;
+        setViewState({
+            x: dim.w / 2,
+            y: dim.h / 2,
+            scale: 1.0,
+            isDragging: false,
+            startX: 0,
+            startY: 0
+        });
+    };
 
     const handleMouseDown = (e: React.MouseEvent) => setViewState(p => ({ ...p, isDragging: true, startX: e.clientX - p.x, startY: e.clientY - p.y }));
     const handleMouseMove = (e: React.MouseEvent) => { if (viewState.isDragging) setViewState(p => ({ ...p, x: e.clientX - p.startX, y: e.clientY - p.startY })); };
@@ -371,7 +387,7 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
 
     return (
         <div className="domino-board" ref={containerRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
-            <div className="pieces-layer" style={{ transform: `translate(${viewState.x}px, ${viewState.y}px)` }}>
+            <div className="pieces-layer" style={{ transform: `translate(${viewState.x}px, ${viewState.y}px) scale(${viewState.scale})` }}>
                 {positionedPieces.map((item) => (
                     <div key={`${item.piece[0]}-${item.piece[1]}`} className="piece-wrapper" style={{ transform: `translate(${item.x}px, ${item.y}px)`, width: item.width, height: item.height }}>
                         <div className="piece-animator">
@@ -386,6 +402,10 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                     </div>
                 ))}
             </div>
+
+            <button className="recenter-button" onClick={recenterBoard} title="Recentrar Tablero">
+                🎯
+            </button>
         </div>
     );
 };
