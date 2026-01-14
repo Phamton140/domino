@@ -357,7 +357,9 @@ html,
 
     /* Shift board up significantly to clear the bottom player area on mobile */
     .board-area {
-        transform: translateY(-150px);
+        transform: translateY(-150px) scale(0.9) translateZ(0);
+        backface-visibility: hidden;
+        -webkit-font-smoothing: subpixel-antialiased;
     }
 }
 
@@ -380,7 +382,11 @@ html,
 
 /* Broader mobile/tablet coverage */
 @media (max-width: 1000px) and (orientation: landscape) {
-    /* REMOVED: transform: translateY(...) */
+    .board-area {
+        transform: scale(0.9) translateZ(0);
+        backface-visibility: hidden;
+        -webkit-font-smoothing: subpixel-antialiased;
+    }
 }
 
 /* === MODAL OVERLAYS (End Hand / Game) === */
