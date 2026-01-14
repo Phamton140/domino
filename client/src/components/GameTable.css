@@ -226,7 +226,7 @@ html,
 
 /* --- TOP LOCATION --- */
 .player-side.top {
-    top: 24px;
+    top: 0;
     left: 50%;
     transform: translateX(-50%);
     /* Wrapper */
@@ -299,7 +299,7 @@ html,
 /* --- BOTTOM LOCATION (ME) --- */
 .player-me {
     position: absolute;
-    bottom: 24px;
+    bottom: 10px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 60;
