@@ -369,17 +369,7 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
 
     }, [dim.w, dim.h]);
 
-    const recenterBoard = () => {
-        if (!dim.w || !dim.h) return;
-        setViewState({
-            x: dim.w / 2,
-            y: dim.h / 2,
-            scale: 1.0,
-            isDragging: false,
-            startX: 0,
-            startY: 0
-        });
-    };
+
 
     const handleMouseDown = (e: React.MouseEvent) => setViewState(p => ({ ...p, isDragging: true, startX: e.clientX - p.x, startY: e.clientY - p.y }));
     const handleMouseMove = (e: React.MouseEvent) => { if (viewState.isDragging) setViewState(p => ({ ...p, x: e.clientX - p.startX, y: e.clientY - p.startY })); };
@@ -403,9 +393,7 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                 ))}
             </div>
 
-            <button className="recenter-button" onClick={recenterBoard} title="Recentrar Tablero">
-                🎯
-            </button>
+
         </div>
     );
 };
