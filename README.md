@@ -8,6 +8,7 @@ A modern, multiplayer domino game built with **React, Node.js, and Socket.io**, 
 - 📱 **Mobile Optimized**: Responsive design with landscape mode support.
 - 🎨 **Modern UI**: Smooth animations, dark mode aesthetics, and clear player indicators.
 - ⚡ **Real-time**: Instant state updates via WebSockets.
+- 🎯 **Smart Board Positioning**: Automatic centering and scaling eliminates the need for manual adjustments.
 
 ## 🇩🇴 Dominican Dominoes Rules (Reglas Dominicanas)
 
