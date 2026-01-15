@@ -5,9 +5,11 @@ import './DominoBoard.css';
 
 interface Props {
     board: { piece: Piece, isStarter?: boolean, ownerTeam?: 'A' | 'B' }[];
+    validMoves?: { head: boolean, tail: boolean };
+    onZoneClick?: (side: 'head' | 'tail') => void;
 }
 
-export const DominoBoard: React.FC<Props> = ({ board }) => {
+export const DominoBoard: React.FC<Props> = ({ board, validMoves, onZoneClick }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [dim, setDim] = useState({ w: 1200, h: 800 });
     const anchorRef = useRef<Piece | null>(null);
@@ -23,7 +25,7 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
     }, []);
 
     const positionedPieces = useMemo(() => {
-        if (board.length === 0) return [];
+        if (board.length === 0) return { pieces: [], rightEnd: null, leftEnd: null };
 
         let anchorIndex = -1;
 
@@ -342,12 +344,18 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                 lastIsDouble = isDouble;
                 lastOrientation = orientation;
             });
+
+            return { endX: lastX, endY: lastY, endW: lastW, endH: lastH, endDirX: curDirX, endDirY: curDirY, endState: state, endIsDouble: lastIsDouble };
         };
 
-        layoutChain(rightChain, 0, 0, 'right');
-        layoutChain(leftChain, 0, 0, 'left');
+        const rightLayout = layoutChain(rightChain, 0, 0, 'right');
+        const leftLayout = layoutChain(leftChain, 0, 0, 'left');
 
-        return results;
+        return {
+            pieces: results,
+            rightEnd: rightLayout,
+            leftEnd: leftLayout
+        };
     }, [board]);
 
     const [viewState, setViewState] = useState({ x: 0, y: 0, scale: 1.0, isDragging: false, startX: 0, startY: 0 });
@@ -382,7 +390,7 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
     return (
         <div className="domino-board" ref={containerRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
             <div className="pieces-layer" style={{ transform: `translate(${viewState.x}px, ${viewState.y}px) scale(${viewState.scale})` }}>
-                {positionedPieces.map((item) => (
+                {positionedPieces.pieces.map((item) => (
                     <div key={`${item.piece[0]}-${item.piece[1]}`} className="piece-wrapper" style={{ transform: `translate(${item.x}px, ${item.y}px)`, width: item.width, height: item.height }}>
                         <div className="piece-animator">
                             <DominoPiece
@@ -395,6 +403,35 @@ export const DominoBoard: React.FC<Props> = ({ board }) => {
                         </div>
                     </div>
                 ))}
+
+                {/* Render Selection Arrows */}
+                {validMoves?.tail && positionedPieces.rightEnd && (
+                    <div
+                        className="board-arrow"
+                        style={{
+                            left: positionedPieces.rightEnd.endX + (positionedPieces.rightEnd.endDirX * 60) + (positionedPieces.rightEnd.endDirX === 0 ? 0 : (positionedPieces.rightEnd.endDirX > 0 ? 30 : -30)),
+                            top: positionedPieces.rightEnd.endY + (positionedPieces.rightEnd.endDirY * 60) + (positionedPieces.rightEnd.endDirY === 0 ? 0 : (positionedPieces.rightEnd.endDirY > 0 ? 30 : -30))
+                        }}
+                        onClick={() => onZoneClick?.('tail')}
+                        title="Jugar por aquí (Derecha)"
+                    >
+                        ➜
+                    </div>
+                )}
+
+                {validMoves?.head && positionedPieces.leftEnd && (
+                    <div
+                        className="board-arrow"
+                        style={{
+                            left: positionedPieces.leftEnd.endX + (positionedPieces.leftEnd.endDirX * 60) + (positionedPieces.leftEnd.endDirX === 0 ? 0 : (positionedPieces.leftEnd.endDirX > 0 ? 30 : -30)),
+                            top: positionedPieces.leftEnd.endY + (positionedPieces.leftEnd.endDirY * 60) + (positionedPieces.leftEnd.endDirY === 0 ? 0 : (positionedPieces.leftEnd.endDirY > 0 ? 30 : -30))
+                        }}
+                        onClick={() => onZoneClick?.('head')}
+                        title="Jugar por aquí (Izquierda)"
+                    >
+                        ➜
+                    </div>
+                )}
             </div>
 
 

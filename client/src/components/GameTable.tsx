@@ -3,7 +3,6 @@ import type { GameState, Piece, Player } from '../types';
 import { socket } from '../socket';
 import { DominoPiece } from './DominoPiece';
 import { DominoBoard } from './DominoBoard';
-import { SideSelectionModal } from './SideSelectionModal';
 import './GameTable.css';
 
 interface Props {
@@ -172,14 +171,68 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId, isPriva
         }
     };
 
-    const handleSideSelection = (side: 'head' | 'tail') => {
-        if (pendingPiece) {
-            socket.emit('place_piece', { roomId, piece: pendingPiece, side });
-            setPendingPiece(null);
+    const handleSelectionClick = (index: 0 | 1) => {
+        if (!pendingPiece) return;
+
+        // index 0 = piece[0] (Head/Top)
+        // index 1 = piece[1] (Tail/Bottom)
+        // We need to know which VALUE this index corresponds to
+        const selectedValue = pendingPiece[index];
+
+        const head = gameState.board[0]?.piece[0];
+        const tail = gameState.board[gameState.board.length - 1]?.piece[1];
+
+        // Logic:
+        // If selectedValue matches HEAD, play to head.
+        // If selectedValue matches TAIL, play to tail.
+        // If it matches BOTH (double or equal ends), prioritize Tail (Right).
+        // If it matches NEITHER (shouldn't happen in valid logic), ignore.
+
+        const matchesHead = selectedValue === head;
+        const matchesTail = selectedValue === tail;
+
+        if (matchesHead && matchesTail) {
+            // Matches both ends (e.g. Board 3..3, I picked 3).
+            // Or Board 3...5, I have [3|5], picked 3, 3 matches head... wait.
+            // If I have [3|5]. Board 3...5.
+            // Picked 3. 3==3 (Head). matchesHead is true. matchesTail (3==5) false.
+            // Play Head.
+            socket.emit('place_piece', { roomId, piece: pendingPiece, side: 'tail' });
+        } else if (matchesHead) {
+            socket.emit('place_piece', { roomId, piece: pendingPiece, side: 'head' });
+        } else if (matchesTail) {
+            socket.emit('place_piece', { roomId, piece: pendingPiece, side: 'tail' });
         }
+
+        setPendingPiece(null);
     };
 
 
+
+    // --- RENDER HELPERS ---
+    const getBoardSelectionState = () => {
+        if (!pendingPiece) return undefined;
+        // Determine if we need to show selection arrows on the board
+        const head = gameState.board[0]?.piece[0];
+        const tail = gameState.board[gameState.board.length - 1]?.piece[1];
+
+        if (gameState.board.length === 0) return undefined;
+
+        const matchesHead = pendingPiece.includes(head);
+        const matchesTail = pendingPiece.includes(tail);
+
+        if (matchesHead && matchesTail) {
+            // Only show if it matches both 
+            return { head: true, tail: true };
+        }
+        return undefined;
+    };
+
+    const handleBoardZoneClick = (side: 'head' | 'tail') => {
+        if (!pendingPiece) return;
+        socket.emit('place_piece', { roomId, piece: pendingPiece, side });
+        setPendingPiece(null);
+    };
 
     const renderPlayerCard = (pos: number) => {
 
@@ -239,12 +292,7 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId, isPriva
 
     return (
         <div className="game-table">
-            {pendingPiece && (
-                <SideSelectionModal
-                    onSelect={handleSideSelection}
-                    onCancel={() => setPendingPiece(null)}
-                />
-            )}
+
 
             <div className="info-bar">
                 {gameState.players.length === 4 && (
@@ -277,7 +325,11 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId, isPriva
 
             {/* Center Board (Canvas) */}
             <div className="board-area">
-                <DominoBoard board={gameState.board} />
+                <DominoBoard
+                    board={gameState.board}
+                    validMoves={getBoardSelectionState()}
+                    onZoneClick={handleBoardZoneClick}
+                />
             </div>
 
             {/* Bottom Player (Me) */}
@@ -321,6 +373,8 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId, isPriva
                                 onClick={() => isMyTurn && isValid && handlePlacePiece(piece)}
                                 disabled={!isMyTurn || !isValid}
                                 size="medium"
+                                selectionMode={pendingPiece === piece}
+                                onSelection={handleSelectionClick}
                             />
                         );
                     })}
