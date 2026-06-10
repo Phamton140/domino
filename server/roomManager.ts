@@ -1,11 +1,11 @@
-import { Room, Player, RoomConfig } from './types';
+import { ServerRoom, Player, RoomConfig } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
 export class RoomManager {
-    private rooms: Map<string, Room> = new Map();
+    private rooms: Map<string, ServerRoom> = new Map();
     private matchmakingQueue: Map<string, string> = new Map(); // playerId -> playerName
 
-    createRoom(hostId: string, hostName: string, isPrivate: boolean = false): Room {
+    createRoom(hostId: string, hostName: string, isPrivate: boolean = false): ServerRoom {
         const roomId = uuidv4().slice(0, 6).toUpperCase(); // Short code for sharing
 
         // Create host player
@@ -14,16 +14,16 @@ export class RoomManager {
             name: hostName,
             hand: [],
             score: 0,
-            team: 'A', // Host is team A
+            team: "A", // Host is team A
             position: 0, // Host is always South (0)
         };
 
-        const newRoom: Room = {
+        const newRoom: ServerRoom = {
             id: roomId,
             hostId,
             players: [host],
             spectators: [],
-            status: 'waiting',
+            status: "waiting",
             config: {
                 maxPlayers: 4,
                 isPrivate,
@@ -40,10 +40,10 @@ export class RoomManager {
         return newRoom;
     }
 
-    joinRoom(roomId: string, playerId: string, playerName: string, isInvited: boolean = false): Room | null {
+    joinRoom(roomId: string, playerId: string, playerName: string, isInvited: boolean = false): ServerRoom | null {
         const room = this.getRoom(roomId);
         if (!room) return null;
-        if (room.status !== 'waiting' && room.status !== 'matchmaking') return null;
+        if (room.status !== "waiting" && room.status !== "matchmaking") return null;
         if (room.players.length >= room.config.maxPlayers) return null;
 
         const existingPlayer = room.players.find(p => p.id === playerId);
@@ -63,7 +63,7 @@ export class RoomManager {
         // Counter-Clockwise Play: 0 (South) -> 1 (East) -> 2 (North) -> 3 (West)
         // Teams: A (0, 2) vs B (1, 3)
 
-        const team = (position === 0 || position === 2) ? 'A' : 'B';
+        const team = (position === 0 || position === 2) ? "A" : "B";
 
         const newPlayer: Player = {
             id: playerId,
@@ -76,12 +76,9 @@ export class RoomManager {
 
         room.players.push(newPlayer);
 
-        // Track invited players
         if (isInvited) {
             room.invitedPlayers.push(playerId);
         }
-
-        console.log(`✅ ${playerName} joined room ${roomId} at position ${position} (Team ${team})`);
 
         return room;
     }
@@ -99,21 +96,21 @@ export class RoomManager {
             this.rooms.delete(roomId);
         } else if (room.hostId === playerId) {
             // Reassign host
-            room.hostId = room.players[0]?.id || '';
+            room.hostId = room.players[0]?.id || "";
         }
 
         return true;
     }
 
-    getRoom(roomId: string): Room | undefined {
+    getRoom(roomId: string): ServerRoom | undefined {
         return this.rooms.get(roomId);
     }
 
     // Find a public room with space
-    findMatch(playerId: string): Room | null {
+    findMatch(playerId: string): ServerRoom | null {
         for (const room of this.rooms.values()) {
             if (!room.config.isPrivate &&
-                room.status === 'waiting' &&
+                room.status === "waiting" &&
                 room.players.length < room.config.maxPlayers) {
                 return room;
             }
@@ -121,19 +118,14 @@ export class RoomManager {
         return null;
     }
 
-    // Matchmaking queue methods
     addToMatchmaking(playerId: string, playerName: string): void {
         if (!this.matchmakingQueue.has(playerId)) {
             this.matchmakingQueue.set(playerId, playerName);
-            console.log(`➕ Added ${playerName} to matchmaking queue (${this.matchmakingQueue.size} total)`);
         }
     }
 
     removeFromMatchmaking(playerId: string): void {
-        const playerName = this.matchmakingQueue.get(playerId);
-        if (this.matchmakingQueue.delete(playerId)) {
-            console.log(`➖ Removed ${playerName} from matchmaking queue (${this.matchmakingQueue.size} remaining)`);
-        }
+        this.matchmakingQueue.delete(playerId);
     }
 
     getPlayerName(playerId: string): string | undefined {
@@ -162,14 +154,12 @@ export class RoomManager {
         const room = this.getRoom(roomId);
         if (!room) return false;
 
-        // Verificar que haya al menos 1 invitado si es sala privada
         if (room.config.isPrivate && room.invitedPlayers.length === 0) {
             return false;
         }
 
-        room.status = 'matchmaking';
+        room.status = "matchmaking";
         room.matchmakingStartTime = Date.now();
-        console.log(`🔍 Started matchmaking for room ${roomId} (${room.players.length}/4 players)`);
         return true;
     }
 
@@ -177,4 +167,3 @@ export class RoomManager {
         return this.matchmakingQueue.size;
     }
 }
-

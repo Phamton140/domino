@@ -24,19 +24,16 @@ function App() {
     }
 
     function onRoomJoined(room: Room) {
-      console.log("Joined room:", room);
       setCurrentRoom(room);
       if (room.gameState) setActiveGame(room.gameState);
       setErrorMsg('');
     }
 
     function onPlayerJoined(players: Player[]) {
-      console.log("Player joined:", players);
       setCurrentRoom(prev => prev ? { ...prev, players } : null);
     }
 
     function onGameStarted(state: GameState) {
-      console.log("Game Started!", state);
       setActiveGame(state);
     }
 

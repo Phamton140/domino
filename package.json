@@ -1,0 +1,14 @@
+{
+  "name": "domino-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build:shared": "cd packages/shared-types && npm run build",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "install:all": "npm install && cd packages/shared-types && npm install && cd ../.. && cd server && npm install && cd ../client && npm install"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

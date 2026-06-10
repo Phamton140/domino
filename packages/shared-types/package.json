@@ -1,0 +1,26 @@
+{
+  "name": "@domino/shared-types",
+  "version": "1.0.0",
+  "description": "Shared TypeScript types for Domino game (server, web, mobile)",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "generate:dart": "node scripts/generate-dart.js"
+  },
+  "keywords": ["domino", "types", "shared"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

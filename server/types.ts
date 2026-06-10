@@ -1,57 +1,37 @@
-export type Piece = [number, number];
+import type { Piece, Player, GameState, RoomConfig, Room, GameStatus, BoardPiece } from "@domino/shared-types";
 
-export interface Player {
-    id: string; // Socket ID
-    name: string;
-    hand: Piece[];
-    score: number;
-    // Game session specific
-    team: 'A' | 'B'; // For 2vs2
-    position: number; // 0-3
+// Re-export shared types
+export type { Piece, Player, GameState, RoomConfig, Room, GameStatus, BoardPiece };
+
+// Server-specific extensions
+export interface ServerRoom extends Room {
+  engine?: any; // GameEngine instance (avoiding circular dependency)
+  nextHandTimer?: ReturnType<typeof setTimeout>;
 }
 
-export type GameStatus = 'waiting' | 'matchmaking' | 'playing' | 'finished';
-
-export interface GameState {
-    board: {
-        piece: Piece;
-        // We might need to track how it was placed (left/right) for UI, 
-        // but specific logic can handle head/tail. 
-        // For now, simpler is better.
-        isStarter?: boolean;
-        ownerTeam?: 'A' | 'B';
-    }[];
-    players: Player[];
-    currentTurnPlayerId: string;
-    turnDeadline: number; // Timestamp for 8s limit
-    winnerTeam?: 'A' | 'B';
-    consecutivePasses: number; // To detect blocked game (tranque)
-    handNumber: number;
-    handWinnerId?: string;
-    winReason?: 'domino' | 'tranque' | 'capicua';
-    handPoints?: number; // Points earned in this hand (for display breakdown)
-    teamScores: { A: number, B: number };
+// Type for socket events
+export interface ServerToClientEvents {
+  room_joined: (room: Room) => void;
+  player_joined: (players: Player[]) => void;
+  game_started: (state: GameState) => void;
+  game_update: (state: GameState) => void;
+  error: (err: { message: string }) => void;
+  notification: (data: { message: string; type: "info" | "warning" | "success" | "error" }) => void;
+  matchmaking_started: (data: { message: string; timeout?: number; currentPlayers: number }) => void;
+  matchmaking_failed: (data: { message: string }) => void;
+  ready_status: (data: { readyCount: number; totalPlayers: number; readyPlayers: string[] }) => void;
+  match_won: (data: { team: "A" | "B"; totalScore: number; reason: string }) => void;
 }
 
-export interface RoomConfig {
-    maxPlayers: number;
-    isPrivate: boolean;
-    targetScore: number; // 200
-    turnDuration: number; // 15 seconds
-}
-
-export interface Room {
-    id: string;
-    hostId: string;
-    players: Player[];
-    spectators: string[]; // Socket IDs
-    status: GameStatus;
-    config: RoomConfig;
-    gameState: GameState | null;
-    engine?: any; // GameEngine instance (avoiding circular dependency)
-    matchmakingStartTime?: number;
-    invitedPlayers: string[]; // Socket IDs of invited players
-    disconnectedPlayers: Map<string, { playerId: string, playerName: string, disconnectTime: number }>; // Track disconnections
-    readyPlayers: Set<string>; // Players ready for next hand
-    nextHandTimer?: NodeJS.Timeout; // Timer for auto-start next hand
+export interface ClientToServerEvents {
+  create_room: (data: { playerName: string; isPrivate: boolean }) => void;
+  join_room: (data: { roomId: string; playerName: string }) => void;
+  find_match: (data: { playerName: string }) => void;
+  start_game: (data: { roomId: string }) => void;
+  start_matchmaking: (data: { roomId: string }) => void;
+  place_piece: (data: { roomId: string; piece: Piece; side: "head" | "tail" }) => void;
+  pass_turn: (data: { roomId: string }) => void;
+  player_ready: (data: { roomId: string }) => void;
+  player_blur: (data: { roomId: string }) => void;
+  leave_room: () => void;
 }

@@ -58,14 +58,12 @@ describe('GameEngine', () => {
     });
 
     test('should handle timer timeout with auto-play or pass', () => {
-        const spy = jest.spyOn(console, 'log');
         const currentPlayer = engine.getState().currentTurnPlayerId;
 
-        // Fast-forward time (15s limit)
-        jest.advanceTimersByTime(15001);
+        // Fast-forward time (5s limit - updated from 15s)
+        jest.advanceTimersByTime(5001);
 
-        expect(spy).toHaveBeenCalledWith(expect.stringContaining('Timeout'));
-        // Turn should have changed
+        // Turn should have changed (auto-play or auto-pass occurred)
         expect(engine.getState().currentTurnPlayerId).not.toBe(currentPlayer);
     });
 
@@ -86,13 +84,25 @@ describe('GameEngine', () => {
 
         // Pass 1
         engine.passTurn(p1);
+        jest.advanceTimersByTime(2500);
         expect(engine.getState().consecutivePasses).toBe(1);
         expect(engine.getState().currentTurnPlayerId).toBe(p2);
 
-        // Pass 2, 3, 4
+        // Pass 2
         engine.passTurn(p2);
+        jest.advanceTimersByTime(2500);
+        expect(engine.getState().consecutivePasses).toBe(2);
+        expect(engine.getState().currentTurnPlayerId).toBe(p3);
+
+        // Pass 3
         engine.passTurn(p3);
+        jest.advanceTimersByTime(2500);
+        expect(engine.getState().consecutivePasses).toBe(3);
+        expect(engine.getState().currentTurnPlayerId).toBe(p4);
+
+        // Pass 4
         engine.passTurn(p4);
+        jest.advanceTimersByTime(2500);
 
         expect(engine.getState().consecutivePasses).toBe(4);
         // Should have triggered Tranque handler -> Win logic
@@ -120,12 +130,11 @@ describe('GameEngine', () => {
         // OR by checking if passTurn fails (since passTurn checks findAnyValidMove)
 
         // Attempt to pass. Should FAIL because we have a valid move.
-        const consoleSpy = jest.spyOn(console, 'log');
         engine.passTurn(p1.id);
 
-        expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('cannot pass - has valid moves'));
         // Turn should NOT have changed (still P1)
         expect(engine.getState().currentTurnPlayerId).toBe(p1.id);
+        expect(engine.getState().consecutivePasses).toBe(0);
 
         // Now simulate timeout to see if it plays
         engine['handleTimeout'](); // Accessing private method for testing

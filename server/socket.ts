@@ -24,7 +24,6 @@ function startGameAutomatically(roomId: string, io: Server, manager: RoomManager
     room.status = 'playing';
 
     io.to(room.id).emit('game_started', room.gameState);
-    console.log(`✅ Game auto-started in room ${room.id} with ${room.players.length} players`);
 }
 
 // Helper function for matchmaking auto-fill
@@ -54,7 +53,6 @@ function startAutoFill(roomId: string, io: Server, manager: RoomManager) {
                         manager.removeFromMatchmaking(id);
                         playerSocket.emit('room_joined', updated);
                         io.to(roomId).emit('player_joined', updated.players);
-                        console.log(`🎮 Matched ${name} to room ${roomId}`);
                     }
                 }
             });
@@ -77,12 +75,10 @@ function startAutoFill(roomId: string, io: Server, manager: RoomManager) {
             if (currentRoom.players.length >= 4) {
                 startGameAutomatically(roomId, io, manager);
             } else {
-                // Not enough players
                 io.to(roomId).emit('matchmaking_failed', {
                     message: `No se encontraron suficientes jugadores. Tienes ${currentRoom.players.length}/4.`
                 });
                 currentRoom.status = 'waiting';
-                console.log(`⏱️ Matchmaking timeout for room ${roomId} (${currentRoom.players.length}/4)`);
             }
         }
     }, CHECK_INTERVAL);
@@ -91,27 +87,17 @@ function startAutoFill(roomId: string, io: Server, manager: RoomManager) {
 // Helper function to start next hand
 function startNextHand(room: any, io: Server, manager: RoomManager) {
     const engine = room.engine as GameEngine;
-    if (!engine) {
-        console.log(`⚠️ No engine found for room ${room.id}`);
-        return;
-    }
+    if (!engine) return;
 
-    // Clear ready status
     room.readyPlayers.clear();
 
-    // Clear timer if exists
     if (room.nextHandTimer) {
         clearTimeout(room.nextHandTimer);
         room.nextHandTimer = undefined;
     }
 
-    // Start new hand
     engine.startHand();
-
-    // Emit updated state
     io.to(room.id).emit('game_update', engine.getState());
-
-    console.log(`🎮 Started new hand in room ${room.id}`);
 }
 
 export const setupSocketHandlers = (io: Server) => {
@@ -146,19 +132,16 @@ export const setupSocketHandlers = (io: Server) => {
             // Sort players by position to ensure correct turn order (0->1->2->3)
             room.players.sort((a, b) => (a.position - b.position));
 
-            // Create Engine with state change callback
             const engine = new GameEngine(room.players, room.config, (state) => {
                 io.to(room.id).emit('game_update', state);
             });
-            room.gameState = engine.getState(); // Link state
-            // Attach engine to room for persistence in memory
+            room.gameState = engine.getState();
             room.engine = engine;
 
             engine.startHand();
             room.status = 'playing';
 
             io.to(room.id).emit('game_started', room.gameState);
-            console.log(`Game started in room ${room.id} with ${room.players.length} players`);
         });
 
         // START MATCHMAKING (for private rooms with invites)
@@ -243,36 +226,23 @@ export const setupSocketHandlers = (io: Server) => {
             const room = roomManager.getRoom(data.roomId);
             if (!room || !room.gameState) return;
 
-            // Add player to ready list
             room.readyPlayers.add(socket.id);
 
             const playerName = room.players.find(p => p.id === socket.id)?.name || 'Unknown';
-            console.log(`✅ ${playerName} is ready (${room.readyPlayers.size}/${room.players.length})`);
 
-            // Notify all players about ready status
             io.to(room.id).emit('ready_status', {
                 readyCount: room.readyPlayers.size,
                 totalPlayers: room.players.length,
                 readyPlayers: Array.from(room.readyPlayers)
             });
 
-            console.log(`📤 Sent ready_status: ${room.readyPlayers.size}/${room.players.length}`);
-
-            // If this is the first player to ready, start 10-second timer (Testing Speed)
             if (room.readyPlayers.size === 1) {
-                console.log(`⏱️ Starting 10-second ready timer for room ${room.id}`);
-
                 room.nextHandTimer = setTimeout(() => {
-                    console.log(`⏰ Ready timer expired, starting next hand automatically`);
                     startNextHand(room, io, roomManager);
                 }, 10000);
             }
 
-            // If ALL players are ready, start immediately
             if (room.readyPlayers.size === room.players.length) {
-                console.log(`🚀 All players ready! Starting next hand immediately`);
-
-                // Cancel the timer
                 if (room.nextHandTimer) {
                     clearTimeout(room.nextHandTimer);
                     room.nextHandTimer = undefined;
@@ -299,41 +269,19 @@ export const setupSocketHandlers = (io: Server) => {
                 return;
             }
 
-            // Check if this is a reconnection attempt
             let isReconnection = false;
             let reconnectedPlayer = null;
 
-            console.log(`🔍 Checking reconnection for ${data.playerName} in room ${data.roomId}`);
-            console.log(`📋 Disconnected players in room:`, Array.from(room.disconnectedPlayers.entries()).map(([id, info]) => ({
-                socketId: id,
-                name: info.playerName,
-                time: new Date(info.disconnectTime).toISOString()
-            })));
-
-            // Look for disconnected player with same name
             for (const [disconnectedSocketId, disconnectedInfo] of room.disconnectedPlayers.entries()) {
-                console.log(`🔎 Comparing "${disconnectedInfo.playerName}" === "${data.playerName}"`);
-
                 if (disconnectedInfo.playerName === data.playerName) {
                     isReconnection = true;
-                    console.log(`✅ Match found! Attempting reconnection...`);
-
-                    // Find the player in the room
                     reconnectedPlayer = room.players.find(p => p.id === disconnectedSocketId);
 
                     if (reconnectedPlayer) {
-                        // Update the player's socket ID
                         reconnectedPlayer.id = socket.id;
-
-                        // Remove from disconnected list
                         room.disconnectedPlayers.delete(disconnectedSocketId);
-
-                        console.log(`🔄 ${data.playerName} reconnected to room ${data.roomId}`);
-
-                        // Join socket room
                         socket.join(room.id);
 
-                        // Send room data WITHOUT engine (avoid circular reference)
                         const cleanRoom = {
                             id: room.id,
                             hostId: room.hostId,
@@ -346,35 +294,23 @@ export const setupSocketHandlers = (io: Server) => {
                         };
                         socket.emit('room_joined', cleanRoom);
 
-                        // If game is active, send current state
                         if (room.status === 'playing' && room.gameState) {
                             socket.emit('game_started', room.gameState);
-
-                            // CRITICAL: Force immediate game_update to sync state
-                            // This ensures the reconnected player gets the current turn info
                             const engine = (room as any).engine;
                             if (engine) {
-                                const currentState = engine.getState();
-                                socket.emit('game_update', currentState);
-                                console.log(`📤 Sent current game state to reconnected player`);
+                                socket.emit('game_update', engine.getState());
                             }
                         }
 
-                        // Notify others
                         io.to(room.id).emit('notification', {
                             type: 'success',
                             message: `${data.playerName} se ha reconectado!`
                         });
-
                         io.to(room.id).emit('player_joined', room.players);
                         return;
-                    } else {
-                        console.log(`⚠️ Player not found in room.players array`);
                     }
                 }
             }
-
-            console.log(`❌ No reconnection match found. Attempting normal join...`);
 
             // Not a reconnection, try normal join
             const updatedRoom = roomManager.joinRoom(data.roomId, socket.id, data.playerName, true); // Mark as invited
@@ -421,77 +357,53 @@ export const setupSocketHandlers = (io: Server) => {
             }
         });
 
-        // DISCONNECT HANDLER
         socket.on('disconnect', () => {
-            console.log(`🔌 Player disconnected: ${socket.id}`);
-
-            // Access rooms through the public method
             const rooms = (roomManager as any).rooms as Map<string, any>;
 
-            // Find which room this player was in
             for (const [roomId, room] of rooms.entries()) {
                 const player = room.players.find((p: any) => p.id === socket.id);
 
                 if (player && room.status === 'playing') {
-                    // Player was in an active game
-                    console.log(`⚠️ ${player.name} disconnected from active game ${roomId}`);
-
-                    // Track disconnection
                     room.disconnectedPlayers.set(socket.id, {
                         playerId: socket.id,
                         playerName: player.name,
                         disconnectTime: Date.now()
                     });
 
-                    console.log(`📝 Tracked disconnection: ${player.name} from room ${roomId}`);
-
-                    // Notify other players
                     io.to(roomId).emit('notification', {
                         type: 'warning',
                         message: `${player.name} se ha desconectado. Tiene 2 minutos para volver...`
                     });
 
-                    // Set 2-minute timeout
                     setTimeout(() => {
-                        const stillDisconnected = room.disconnectedPlayers.has(socket.id);
-
-                        if (stillDisconnected) {
-                            console.log(`⏱️ ${player.name} did not reconnect in time. Forfeiting game.`);
-
-                            // Determine winning team (opposite of disconnected player's team)
+                        if (room.disconnectedPlayers.has(socket.id)) {
                             const losingTeam = player.team;
                             const winningTeam = losingTeam === 'A' ? 'B' : 'A';
 
-                            // End the game
                             room.status = 'finished';
                             if (room.gameState) {
                                 room.gameState.winnerTeam = winningTeam;
                             }
 
-                            // Notify all players
                             io.to(roomId).emit('match_won', {
                                 team: winningTeam,
                                 totalScore: 200,
                                 reason: `${player.name} abandonó la partida`
                             });
 
-                            // Clean up
                             room.disconnectedPlayers.delete(socket.id);
                             roomManager.leaveRoom(roomId, socket.id);
                         }
-                    }, 120000); // 2 minutes
+                    }, 120000);
 
                     break;
                 } else if (player) {
-                    // Player was in lobby, just remove them
-                    console.log(`👋 ${player.name} left lobby ${roomId}`);
                     roomManager.leaveRoom(roomId, socket.id);
                     io.to(roomId).emit('player_joined', room.players);
                     break;
                 }
             }
 
-            // Remove from matchmaking queue
             roomManager.removeFromMatchmaking(socket.id);
         });
     });

@@ -73,34 +73,20 @@ export class GameEngine {
 
             let startPlayer = starter;
             if (!startPlayer) {
-                // Fallback: Find highest double
-                console.log("⚠️ No player has double-6, finding highest double...");
                 for (let d = 5; d >= 0; d--) {
                     startPlayer = this.gameState.players.find(p => p.hand.some(b => b[0] === d && b[1] === d));
-                    if (startPlayer) {
-                        console.log(`🎲 Highest double found: ${d}-${d} with player ${startPlayer.name}`);
-                        break;
-                    }
+                    if (startPlayer) break;
                 }
             }
-            // If still no doubles? unlikely but possible with 2 players (14 tiles).
-            if (!startPlayer) startPlayer = this.gameState.players[0]; // Panic fallback
+            if (!startPlayer) startPlayer = this.gameState.players[0];
 
             this.gameState.currentTurnPlayerId = startPlayer.id;
             console.log(`🎯 Primera mano: ${startPlayer.name} tiene el doble-6 y debe jugarlo`);
         } else {
-            // Next hands: Previous winner starts (or fallback to first player)
             if (this.lastWinnerId) {
                 const winnerStillInGame = this.gameState.players.find(p => p.id === this.lastWinnerId);
-                if (winnerStillInGame) {
-                    this.gameState.currentTurnPlayerId = this.lastWinnerId;
-                    console.log(`🎯 Mano ${this.gameState.handNumber}: ${winnerStillInGame.name} ganó la anterior y empieza`);
-                } else {
-                    // Winner left? Fallback to first player
-                    this.gameState.currentTurnPlayerId = this.gameState.players[0].id;
-                }
+                this.gameState.currentTurnPlayerId = winnerStillInGame?.id ?? this.gameState.players[0].id;
             } else {
-                // Should not happen if hand > 1, but safety fallback
                 this.gameState.currentTurnPlayerId = this.gameState.players[0].id;
             }
         }
@@ -122,20 +108,12 @@ export class GameEngine {
         const duration = 5000;
         this.gameState.turnDeadline = Date.now() + duration;
 
-        // Store the current player ID to verify in timeout
         const currentPlayerId = this.gameState.currentTurnPlayerId;
         const currentPlayer = this.getCurrentPlayer();
 
-        console.log(`⏱️ Starting timer for ${currentPlayer?.name}: ${duration / 1000}s`);
-
         this.timer = setTimeout(() => {
-            // Verify this timeout is still valid for the current player
-            // Timer runs REGARDLESS of connection status - game must continue
             if (this.gameState.currentTurnPlayerId === currentPlayerId) {
-                console.log(`⏰ Timer expired for ${currentPlayer?.name}`);
                 this.handleTimeout();
-            } else {
-                console.log(`⚠️ Timeout cancelled - turn already changed`);
             }
         }, duration);
     }
@@ -162,20 +140,14 @@ export class GameEngine {
 
         const validMove = this.findAnyValidMove(player);
         if (validMove) {
-            console.log(`⏱️ Timeout: Auto-playing ${validMove.piece} for ${player.name}`);
             this.placePiece(player.id, validMove.piece, validMove.side);
         } else {
-            console.log(`⏱️ Timeout: Auto-passing for ${player.name}`);
             this.passTurn(player.id);
         }
 
-        // Notify about state change AND timeout
         if (this.onStateChange) {
             this.onStateChange(this.getState());
         }
-
-        // Notify about timeout (will be sent via socket handler)
-        console.log(`📢 Notifying all players: ${player.name}'s time ran out`);
     }
 
     private getCurrentPlayer(): Player | undefined {
@@ -213,54 +185,32 @@ export class GameEngine {
     private findAnyValidMove(player: Player): { piece: Piece, side: 'head' | 'tail' } | null {
         const [head, tail] = this.getOpenEnds();
 
-        console.log(`🔍 Finding valid move for ${player.name} (Hand: ${player.hand.length})`);
-        console.log(`   Board Ends: Head=${head}, Tail=${tail}`);
-
-        // 1. First move of the hand (Board Empty)
         if (head === -1) {
             if (this.gameState.handNumber === 1) {
-                // First hand: Must play [6,6]
                 const d6 = player.hand.find(p => p[0] === 6 && p[1] === 6);
-                console.log(`   First Hand: Looking for [6,6]. Found? ${!!d6}`);
                 return d6 ? { piece: d6, side: 'head' } : null;
             } else {
-                // Subsequent hands: Any piece is valid. Pick random.
                 if (player.hand.length === 0) return null;
                 const randomIdx = Math.floor(Math.random() * player.hand.length);
-                console.log(`   Subsequent Hand Start: Picking random piece`);
                 return { piece: player.hand[randomIdx], side: 'head' };
             }
         }
 
-        // 2. Regular move (Board has pieces)
         const validMoves: { piece: Piece, side: 'head' | 'tail' }[] = [];
 
-        console.log(`   Checking ${player.hand.length} pieces in hand...`);
         for (const piece of player.hand) {
-            let matches = false;
-            // Check Head
             if (piece[0] === head || piece[1] === head) {
                 validMoves.push({ piece, side: 'head' });
-                matches = true;
             }
-            // Check Tail
             if (piece[0] === tail || piece[1] === tail) {
                 validMoves.push({ piece, side: 'tail' });
-                matches = true;
             }
-            // Log matching debugging
-            // console.log(`     Piece [${piece[0]},${piece[1]}] vs H:${head}/T:${tail} -> ${matches ? 'MATCH' : 'No'}`);
         }
-
-        console.log(`   Total valid moves found: ${validMoves.length}`);
 
         if (validMoves.length === 0) return null;
 
-        // Pick random valid move to satisfy "escoger una jugada aleatoria"
         const randomIdx = Math.floor(Math.random() * validMoves.length);
-        const selected = validMoves[randomIdx];
-        console.log(`   Selected move: [${selected.piece[0]},${selected.piece[1]}] on ${selected.side}`);
-        return selected;
+        return validMoves[randomIdx];
     }
 
     public placePiece(playerId: string, rawPiece: Piece, side: 'head' | 'tail'): boolean {
@@ -315,7 +265,6 @@ export class GameEngine {
         const matchesTail = (piece[0] === tail || piece[1] === tail);
 
         if (matchesHead && matchesTail) {
-            console.log(`⚠️ Ambiguous move (Double Match) for [${piece[0]},${piece[1]}] - Forcing RIGHT END (Tail) rule`);
             side = 'tail';
         }
 
@@ -346,36 +295,20 @@ export class GameEngine {
         player.hand.splice(pieceIdx, 1);
         this.gameState.consecutivePasses = 0;
 
-        // --- START BONUS AWARD ---
         if (this.pendingStartBonus) {
-            // Check if this player belongs to the target team (should be partner)
             if (player.team === this.pendingStartBonus.team) {
-                console.log(`🎉 START BONUS AWARDED! +${this.pendingStartBonus.points} points for Team ${player.team}`);
                 this.gameState.teamScores[player.team] += this.pendingStartBonus.points;
-                // Note: We don't end the hand, just add points.
-                // We should notify clients of score update
-                // Effectively done by nextTurn() broadcast or if we force one here.
             }
-            this.pendingStartBonus = undefined; // Consumed
+            this.pendingStartBonus = undefined;
         }
-        // --- END BONUS AWARD ---
 
-        // Check Win / Capicúa
         if (player.hand.length === 0) {
-            // Capicúa check: The piece played matched BOTH ends of the board.
-            // IMPORTANT: Doubles do NOT count as Capicúa (only mixed pieces)
             const isDouble = piece[0] === piece[1];
             const isCapicua = !isDouble && (head !== -1 && (
                 (piece[0] === head && piece[1] === tail) ||
                 (piece[1] === head && piece[0] === tail) ||
                 (head === tail)
             ));
-
-            if (isCapicua) {
-                console.log(`🎯 Capicúa detected! Piece [${piece[0]},${piece[1]}] matched both ends`);
-            } else if (isDouble) {
-                console.log(`⚠️ Double [${piece[0]},${piece[1]}] played - NOT a Capicúa`);
-            }
 
             this.handleWin(player, 'domino', isCapicua);
             return true;
@@ -386,83 +319,49 @@ export class GameEngine {
     }
 
     public passTurn(playerId: string) {
-        // CRITICAL: Verify it's this player's turn
-        if (playerId !== this.gameState.currentTurnPlayerId) {
-            console.log(`❌ Rejected pass from ${playerId} - not their turn (current: ${this.gameState.currentTurnPlayerId})`);
-            return;
-        }
+        if (playerId !== this.gameState.currentTurnPlayerId) return;
 
-        // Validation: Can ONLY pass if no moves available
         const player = this.getCurrentPlayer();
-        if (player && this.findAnyValidMove(player)) {
-            console.log(`❌ ${player.name} cannot pass - has valid moves`);
-            return;
-        }
+        if (player && this.findAnyValidMove(player)) return;
 
-        // Stop timer immediately to pause game flow
         if (this.timer) {
             clearTimeout(this.timer);
             this.timer = null;
         }
 
-        // --- START BONUS LOGIC ---
-        // 1. If we had a pending bonus and the PARTNER also passes, void it.
         if (this.pendingStartBonus) {
-            console.log(`❌ Start Bonus VOIDED: Partner also passed.`);
             this.pendingStartBonus = undefined;
-        }
-        // 2. If it's the very first play (Board has 1 piece), and the NEXT player passes.
-        else if (this.gameState.board.length === 1) {
+        } else if (this.gameState.board.length === 1) {
             const startPiece = this.gameState.board[0];
             const isDouble = startPiece.piece[0] === startPiece.piece[1];
             const points = isDouble ? 30 : 60;
 
-            console.log(`✨ Potential Start Bonus Detected! Started with ${isDouble ? 'Double' : 'Mixed'}. If partner plays, +${points}`);
-
             this.pendingStartBonus = {
-                team: startPiece.ownerTeam || 'A', // Fallback to 'A' (should not happen for placed pieces)
+                team: startPiece.ownerTeam || 'A',
                 points: points
             };
         }
-        // --- END BONUS LOGIC ---
 
         this.gameState.consecutivePasses++;
-        console.log(`Pass count: ${this.gameState.consecutivePasses}`);
 
-        // Broadcast state immediately so client shows "Pass" notification
         if (this.onStateChange) {
             this.onStateChange(this.getState());
         }
 
-        // DELAY: Wait 2.5s before moving to next player
-        // This allows the "Pass" animation to play without eating into the next player's time
         setTimeout(() => {
-            // Check for Pase Redondo (Round Pass) - All 3 opponents passed, turn returns to same player
-            // IMPORTANT: Only if the current player CAN still play (not a Tranque)
             if (this.gameState.consecutivePasses === 3) {
                 const currentPlayer = this.getCurrentPlayer();
 
-                // Check if current player has valid moves
                 if (currentPlayer && this.findAnyValidMove(currentPlayer)) {
-                    // Check team score - Pase Redondo does NOT apply if team has 170+ points
-                    // Usage of teamScores is the source of truth
                     const teamScore = this.gameState.teamScores[currentPlayer.team as 'A' | 'B'];
 
                     if (teamScore >= 170) {
-                        console.log(`⚠️ Pase Redondo DETECTED but NOT APPLIED - Team ${currentPlayer.team} has ${teamScore} points (170+ limit)`);
-                        // Reset consecutive passes but no bonus
                         this.gameState.consecutivePasses = 0;
                         this.startTurnTimer();
-                        // Broadcast update again (turn starts)
                         if (this.onStateChange) this.onStateChange(this.getState());
                         return;
                     }
 
-                    // TRUE Pase Redondo - player can continue playing and team < 170
-                    console.log(`🎉 PASE REDONDO! Player ${currentPlayer.name} can still play, +30 bonus`);
-
-                    // Award +30 to the team
-                    // Re-fetch team players for individual score update
                     const teamPlayers = this.gameState.players.filter(p => p.team === currentPlayer.team);
                     teamPlayers.forEach(p => p.score += 30);
 
@@ -488,61 +387,41 @@ export class GameEngine {
                 }
             }
 
-            // Check for Tranque (all 4 passed)
             if (this.gameState.consecutivePasses === 4) {
-                console.log(`🔒 TRANQUE - All players passed`);
                 this.handleTranque();
-                // FIX: Broadcast the result (Tranque/Win) so clients see the overlay
                 if (this.onStateChange) {
                     this.onStateChange(this.getState());
                 }
                 return;
             }
 
-            // Move to next player
             this.nextTurn();
 
-            // Broadcast update again (new turn starts)
             if (this.onStateChange) {
                 this.onStateChange(this.getState());
             }
 
-        }, 2500); // 2.5 seconds pause
+        }, 2500);
     }
 
     private nextTurn() {
         if (this.gameState.winnerTeam) return;
 
-        // COUNTERCLOCKWISE turn order: 0 (South) -> 1 (East) -> 2 (North) -> 3 (West) -> 0
         const currentIdx = this.gameState.players.findIndex(p => p.id === this.gameState.currentTurnPlayerId);
         const nextIdx = (currentIdx + 1) % this.gameState.players.length;
         this.gameState.currentTurnPlayerId = this.gameState.players[nextIdx].id;
 
-        console.log(`Turn: ${this.gameState.players[currentIdx].name} → ${this.gameState.players[nextIdx].name} (counterclockwise)`);
-
         this.startTurnTimer();
     }
 
-    // --- Scoring & End Game ---
     private handleWin(winner: Player, type: 'domino' | 'tranque', isCapicua: boolean = false) {
         this.gameState.handWinnerId = winner.id;
 
-        // Calculate points from UNPLAYED pieces (pieces still in hand)
-        // Each player's remaining pieces are summed
         const totalTable = this.gameState.players.reduce((sum, p) => sum + this.sumHand(p.hand), 0);
 
-        console.log(`Counting unplayed pieces:`);
-        this.gameState.players.forEach(p => {
-            const handValue = this.sumHand(p.hand);
-            console.log(`  ${p.name} (Team ${p.team}): ${p.hand.length} pieces = ${handValue} points`);
-        });
-        console.log(`  Total unplayed: ${totalTable} points`);
-
-        // Apply bonus
-        let bonus = 0; // Initialize bonus variable
+        let bonus = 0;
         if (type === 'domino' && isCapicua) {
             bonus = 30;
-            console.log("🎉 ¡Capicúa! Bonus +30 (ALWAYS applies, even with 170+ points)");
             this.gameState.winReason = 'capicua';
         } else {
             this.gameState.winReason = type;
@@ -553,30 +432,20 @@ export class GameEngine {
         const teamPlayers = this.gameState.players.filter(p => p.team === winner.team);
         const pointsToAdd = totalTable + bonus;
 
-        // update dedicated team score
         this.gameState.teamScores[winner.team] += pointsToAdd;
 
-        // Store points earned this hand for UI display
         this.gameState.handPoints = pointsToAdd;
 
-        // Also update individual player score (just for tracking, not for game logic anymore)
-        winner.score += pointsToAdd; // Only winner gets the "individual" credit if we want to keep it
+        winner.score += pointsToAdd;
 
-        console.log(`Team ${winner.team} wins hand! Points: ${totalTable} + Bonus: ${bonus} = ${pointsToAdd}`);
-        console.log(`Current Scores: Team A: ${this.gameState.teamScores.A}, Team B: ${this.gameState.teamScores.B}`);
-
-        // Check Match Win Condition - Use TEAM SCORE
         const teamScore = this.gameState.teamScores[winner.team];
         if (teamScore >= 200) {
             this.gameState.winnerTeam = winner.team;
-            console.log(`🏆 Team ${winner.team} wins the match with ${teamScore} points!`);
         } else {
             this.lastWinnerId = winner.id;
             this.gameState.handNumber++;
-            console.log(`Hand ${this.gameState.handNumber - 1} won by ${winner.name}. Points: ${pointsToAdd}`);
         }
 
-        // Stop timer
         if (this.timer) {
             clearTimeout(this.timer);
             this.timer = null;
@@ -585,20 +454,12 @@ export class GameEngine {
 
     private handleTranque() {
         if (this.timer) clearTimeout(this.timer);
-        console.log("Tranque detected!");
-
-        // Logic: The "trancador" is the last player who successfully placed a piece.
-        // After that placement, 4 consecutive passes happened.
-        // Current turn is at the player who would play next after the 4th pass.
-        // So we need to go back 4 positions to find who played last.
 
         const currentIdx = this.gameState.players.findIndex(p => p.id === this.gameState.currentTurnPlayerId);
 
-        // The trancador is 4 positions back (wrapping around)
         const trancadorIdx = (currentIdx - 4 + this.gameState.players.length) % this.gameState.players.length;
         const trancador = this.gameState.players[trancadorIdx];
 
-        // The opponent is the next player after trancador
         const opponentIdx = (trancadorIdx + 1) % this.gameState.players.length;
         const opponent = this.gameState.players[opponentIdx];
 
@@ -611,7 +472,6 @@ export class GameEngine {
         } else if (scoreB < scoreA) {
             winner = opponent;
         } else {
-            // Tie: In Dominican rules, usually the trancador loses on ties
             winner = opponent;
         }
 

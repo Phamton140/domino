@@ -54,12 +54,9 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId, isPriva
         const head = gameState.board[0]?.piece[0];
         const tail = gameState.board[gameState.board.length - 1]?.piece[1];
 
-        // Check matching
         const canPlay = piece[0] === head || piece[1] === head || piece[0] === tail || piece[1] === tail;
         return canPlay;
     });
-
-    console.log(`Render: ID=${currentSocketId}, Turn=${gameState.currentTurnPlayerId}, MyTurn=${isMyTurn}, ValidMove=${hasValidMove}`);
 
     useEffect(() => {
         function onGameUpdate(state: GameState) {
@@ -103,9 +100,7 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId, isPriva
     // Auto-Pass Logic
     useEffect(() => {
         if (isMyTurn && !hasValidMove) {
-            console.log("Auto-Pass Effect: No moves, scheduling pass...");
             const timer = setTimeout(() => {
-                console.log("Auto-Pass Effect: Emitting pass_turn");
                 socket.emit('pass_turn', { roomId });
             }, 1000);
             return () => clearTimeout(timer);
@@ -142,7 +137,6 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId, isPriva
 
 
     const handlePlacePiece = (piece: Piece) => {
-        console.log("Attempting to place piece:", piece, "Room:", roomId);
         const head = gameState.board[0]?.piece[0];
         const tail = gameState.board[gameState.board.length - 1]?.piece[1];
 
@@ -259,6 +253,7 @@ export const GameTable: React.FC<Props> = ({ initialState, roomId, myId, isPriva
         // Calculate remaining time for animation sync
         let remainingStyle = {};
         if (isActive && gameState.turnDeadline) {
+            // eslint-disable-next-line react-hooks/purity
             const msLeft = Math.max(0, gameState.turnDeadline - Date.now());
             remainingStyle = { '--timer-duration': `${msLeft}ms` } as React.CSSProperties;
         }
