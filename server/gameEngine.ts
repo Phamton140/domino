@@ -330,16 +330,19 @@ export class GameEngine {
         }
 
         if (this.pendingStartBonus) {
-            this.pendingStartBonus = undefined;
+            // Bonus already pending, keep it
         } else if (this.gameState.board.length === 1) {
             const startPiece = this.gameState.board[0];
-            const isDouble = startPiece.piece[0] === startPiece.piece[1];
-            const points = isDouble ? 30 : 60;
+            // Only set bonus when the passing player is on the same team as the starter
+            if (player && player.team === (startPiece.ownerTeam || 'A')) {
+                const isDouble = startPiece.piece[0] === startPiece.piece[1];
+                const points = isDouble ? 30 : 60;
 
-            this.pendingStartBonus = {
-                team: startPiece.ownerTeam || 'A',
-                points: points
-            };
+                this.pendingStartBonus = {
+                    team: startPiece.ownerTeam || 'A',
+                    points: points
+                };
+            }
         }
 
         this.gameState.consecutivePasses++;
@@ -350,40 +353,39 @@ export class GameEngine {
 
         setTimeout(() => {
             if (this.gameState.consecutivePasses === 3) {
-                const currentPlayer = this.getCurrentPlayer();
+                const currentIdx = this.gameState.players.findIndex(p => p.id === this.gameState.currentTurnPlayerId);
+                const nextIdx = (currentIdx + 1) % this.gameState.players.length;
+                const nextPlayer = this.gameState.players[nextIdx];
+                const nextTeam = nextPlayer.team as 'A' | 'B';
 
-                if (currentPlayer && this.findAnyValidMove(currentPlayer)) {
-                    const teamScore = this.gameState.teamScores[currentPlayer.team as 'A' | 'B'];
+                if (this.findAnyValidMove(nextPlayer)) {
+                    const teamScore = this.gameState.teamScores[nextTeam];
 
                     if (teamScore >= 170) {
                         this.gameState.consecutivePasses = 0;
+                        this.gameState.currentTurnPlayerId = nextPlayer.id;
                         this.startTurnTimer();
                         if (this.onStateChange) this.onStateChange(this.getState());
                         return;
                     }
 
-                    const teamPlayers = this.gameState.players.filter(p => p.team === currentPlayer.team);
+                    const teamPlayers = this.gameState.players.filter(p => p.team === nextTeam);
                     teamPlayers.forEach(p => p.score += 30);
+                    this.gameState.teamScores[nextTeam] += 30;
 
-                    // Notify about Pase Redondo
                     if (this.onStateChange) {
                         this.onStateChange(this.getState());
                     }
 
-                    console.log(`📢 +30 Pase Redondo for Team ${currentPlayer.team}`);
+                    console.log(`📢 +30 Pase Redondo for Team ${nextTeam}`);
 
-                    // Reset consecutive passes
                     this.gameState.consecutivePasses = 0;
-
-                    // Turn stays with current player, restart timer
+                    this.gameState.currentTurnPlayerId = nextPlayer.id;
                     this.startTurnTimer();
-                    // Broadcast update again (turn starts)
                     if (this.onStateChange) this.onStateChange(this.getState());
                     return;
                 } else {
-                    // Current player also can't play - this will be a Tranque on next pass
-                    console.log(`⚠️ Not a Pase Redondo - current player also can't play (Tranque incoming)`);
-                    // Continue to next player to complete the Tranque
+                    console.log(`⚠️ Not a Pase Redondo - next player also can't play (Tranque incoming)`);
                 }
             }
 
